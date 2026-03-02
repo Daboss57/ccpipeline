@@ -29,6 +29,7 @@ export default function RadialOrbitalTimeline({ timelineData }: RadialOrbitalTim
   const [pulseEffect, setPulseEffect] = useState<Record<number, boolean>>({})
   const [centerOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null)
+  const [orbitRadius, setOrbitRadius] = useState<number>(180)
   const containerRef = useRef<HTMLDivElement>(null)
   const orbitRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({})
@@ -113,9 +114,22 @@ export default function RadialOrbitalTimeline({ timelineData }: RadialOrbitalTim
     }
   }, [autoRotate])
 
+  useEffect(() => {
+    const updateRadius = () => {
+      const width = containerRef.current?.offsetWidth ?? window.innerWidth
+      const safeWidth = Math.max(width - 64, 240)
+      const nextRadius = Math.max(120, Math.min(200, Math.floor(safeWidth / 3.2)))
+      setOrbitRadius(nextRadius)
+    }
+
+    updateRadius()
+    window.addEventListener('resize', updateRadius)
+    return () => window.removeEventListener('resize', updateRadius)
+  }, [])
+
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360
-    const radius = 200
+    const radius = orbitRadius
     const radian = (angle * Math.PI) / 180
 
     const x = radius * Math.cos(radian) + centerOffset.x
@@ -140,8 +154,8 @@ export default function RadialOrbitalTimeline({ timelineData }: RadialOrbitalTim
   }
 
   return (
-    <div className="w-full min-h-[760px] flex flex-col items-center justify-center bg-black overflow-hidden rounded-3xl" ref={containerRef} onClick={handleContainerClick}>
-      <div className="relative w-full max-w-4xl h-full min-h-[700px] flex items-center justify-center">
+    <div className="w-full min-h-[540px] flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-black px-4 sm:min-h-[660px] lg:min-h-[760px]" ref={containerRef} onClick={handleContainerClick}>
+      <div className="relative flex h-full min-h-[520px] w-full max-w-4xl items-center justify-center sm:min-h-[640px] lg:min-h-[700px]">
         <div
           className="absolute w-full h-full flex items-center justify-center"
           ref={orbitRef}
@@ -217,12 +231,12 @@ export default function RadialOrbitalTimeline({ timelineData }: RadialOrbitalTim
                   <Icon size={16} />
                 </div>
 
-                <div className={`absolute top-12 whitespace-nowrap text-xs font-semibold tracking-wider transition-all duration-300 ${isExpanded ? 'text-white scale-125' : 'text-white/70'}`}>
+                <div className={`absolute top-12 whitespace-nowrap text-[11px] font-semibold tracking-wider transition-all duration-300 ${isExpanded ? 'text-white scale-125' : 'text-white/70'}`}>
                   {item.title}
                 </div>
 
                 {isExpanded && (
-                  <Card className="absolute top-20 left-1/2 -translate-x-1/2 w-64 bg-black/90 backdrop-blur-lg border-white/30 shadow-xl shadow-white/10 overflow-visible">
+                  <Card className="absolute top-20 left-1/2 -translate-x-1/2 w-64 max-w-[82vw] bg-black/90 backdrop-blur-lg border-white/30 shadow-xl shadow-white/10 overflow-visible sm:max-w-xs">
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-px h-3 bg-white/50" />
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-center">
