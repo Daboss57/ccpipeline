@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Calendar, Clock, Code, FileText, User } from 'lucide-react'
 
 import {
   type CreditResolutionResponse,
@@ -23,6 +24,8 @@ import type {
   School,
   ValidationReport,
 } from './types'
+import AnimatedHero from '@/components/ui/animated-hero'
+import RadialOrbitalTimeline, { type TimelineItem } from '@/components/ui/radial-orbital-timeline'
 
 type ExamInput = {
   id: number
@@ -71,6 +74,17 @@ type FormState = {
   maxUnitsHs: number
   blockedTerms: string[]
   priority: PriorityType
+}
+
+type SharedPlanPayload = {
+  version: 1
+  created_at: string
+  form_state: FormState
+  plan: PlanResult
+  validation: ValidationReport | null
+  resolved_credit_map: ResolvedCreditMap | null
+  igetc_tracker: IGETCTracker | null
+  scenarios: ScenarioSnapshot[]
 }
 
 const gradeOptions = ['9th', '10th', '11th', '12th', '1st year CC', '2nd year CC']
@@ -241,6 +255,37 @@ function decodeState(value: string | null): FormState | null {
   }
 }
 
+function encodeSharePayload(payload: SharedPlanPayload): string {
+  const raw = JSON.stringify(payload)
+  const bytes = new TextEncoder().encode(raw)
+  let binary = ''
+  bytes.forEach((value) => {
+    binary += String.fromCharCode(value)
+  })
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function decodeSharePayload(value: string | null): SharedPlanPayload | null {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
+    const binary = atob(padded)
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    const decoded = new TextDecoder().decode(bytes)
+    const parsed = JSON.parse(decoded) as SharedPlanPayload
+    if (parsed?.version !== 1 || !parsed?.plan) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 function getTermSortKey(termId: string): number {
   const [yearPart, seasonPart] = termId.split('-')
   const year = Number(yearPart)
@@ -290,11 +335,26 @@ function App() {
   const [scenarioRunLabel, setScenarioRunLabel] = useState('')
   const [tourVisible, setTourVisible] = useState(false)
   const [tourStep, setTourStep] = useState(0)
+  const [isSharingPlan, setIsSharingPlan] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    const sharedPayload = decodeSharePayload(params.get('shared'))
+    if (sharedPayload) {
+      setFormState(sharedPayload.form_state)
+      setPlan(sharedPayload.plan)
+      setValidation(sharedPayload.validation)
+      setResolvedMap(sharedPayload.resolved_credit_map)
+      setIgetcTracker(sharedPayload.igetc_tracker)
+      setSavedScenarios(sharedPayload.scenarios ?? [])
+      setStage('plan')
+      setPlanWorkspaceTab('overview')
+      setTourVisible(false)
+      setStatus('Shared plan loaded successfully.')
+    }
+
     const decoded = decodeState(params.get('state'))
-    if (decoded) {
+    if (decoded && !sharedPayload) {
       setFormState(decoded)
     }
 
@@ -302,6 +362,7 @@ function App() {
       .then((rows) => setSchools(rows))
       .catch(() => setStatus('Could not load schools. Is API running at localhost:8000?'))
   }, [])
+
 
   useEffect(() => {
     if (!formState.schoolId) {
@@ -1083,6 +1144,49 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
+  async function shareEntirePlan() {
+    if (!plan) {
+      return
+    }
+
+    setIsSharingPlan(true)
+    try {
+      const payload: SharedPlanPayload = {
+        version: 1,
+        created_at: new Date().toISOString(),
+        form_state: formState,
+        plan,
+        validation,
+        resolved_credit_map: resolvedMap,
+        igetc_tracker: igetcTracker,
+        scenarios: savedScenarios,
+      }
+
+      const encodedPayload = encodeSharePayload(payload)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('state')
+      url.searchParams.set('shared', encodedPayload)
+      const shareLink = url.toString()
+
+      if (shareLink.length > 12000) {
+        setStatus('Plan is too large for a single URL link. Reduce saved scenarios and try sharing again.')
+        return
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareLink)
+        setStatus('Share link copied to clipboard.')
+      } else {
+        window.prompt('Copy this share link:', shareLink)
+        setStatus('Share link generated. Copy it from the prompt.')
+      }
+    } catch {
+      setStatus('Failed to generate share link. Please try again.')
+    } finally {
+      setIsSharingPlan(false)
+    }
+  }
+
   function goNextStep() {
     setCurrentStep((step) => Math.min(5, step + 1))
   }
@@ -1111,6 +1215,64 @@ function App() {
       title: 'Fine-tune the Schedule',
       body: 'Go to Adjust to move courses and rebuild the schedule safely.',
       tab: 'adjust' as PlanWorkspaceTab,
+    },
+  ]
+
+  const landingTimelineData: TimelineItem[] = [
+    {
+      id: 1,
+      title: 'Planning',
+      date: 'Step 1',
+      content: 'Collect profile, goals, target school, and constraints for planning.',
+      category: 'Planning',
+      icon: Calendar,
+      relatedIds: [2],
+      status: 'completed',
+      energy: 100,
+    },
+    {
+      id: 2,
+      title: 'Credit Map',
+      date: 'Step 2',
+      content: 'Resolve AP/IB/CLEP and transfer credits against policy data.',
+      category: 'Credit',
+      icon: FileText,
+      relatedIds: [1, 3],
+      status: 'completed',
+      energy: 85,
+    },
+    {
+      id: 3,
+      title: 'Generate Plan',
+      date: 'Step 3',
+      content: 'Build and validate a term-by-term schedule with AI optimization.',
+      category: 'Scheduling',
+      icon: Code,
+      relatedIds: [2, 4],
+      status: 'in-progress',
+      energy: 72,
+    },
+    {
+      id: 4,
+      title: 'Scenario Diff',
+      date: 'Step 4',
+      content: 'Compare No AP/Fast/Light variants and understand tradeoffs.',
+      category: 'Scenarios',
+      icon: User,
+      relatedIds: [3, 5],
+      status: 'pending',
+      energy: 45,
+    },
+    {
+      id: 5,
+      title: 'Apply Ready',
+      date: 'Step 5',
+      content: 'Track readiness score, blockers, and finalize the path to submit.',
+      category: 'Outcome',
+      icon: Clock,
+      relatedIds: [4],
+      status: 'pending',
+      energy: 25,
     },
   ]
 
@@ -1190,40 +1352,18 @@ function App() {
 
       {stage === 'landing' && (
         <section className="space-y-6">
-          <div className="relative overflow-hidden rounded-3xl border border-brand/20 bg-gradient-to-br from-panel via-base to-brand/10 p-8 shadow-soft">
-            <div className="max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-brand">Decision-first transfer planning</p>
-              <h1 className="mt-3 text-4xl font-semibold leading-tight">Plan like a product: clear paths, real risks, smarter decisions.</h1>
-              <p className="mt-3 text-sm text-stone-700">
-                Build a complete pathway with AI scheduling, admissions readiness forecasting, scenario comparison, and requirement tracking.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  className="rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white"
-                  onClick={() => {
-                    setStage('intake')
-                    setCurrentStep(1)
-                  }}
-                >
-                  Start Planning
-                </button>
-                <button className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white" onClick={applyPrdExamplePreset}>
-                  Explore Demo Plan
-                </button>
-                {plan && (
-                  <button
-                    className="rounded-xl bg-stone-800 px-4 py-2 text-sm font-medium text-white"
-                    onClick={() => {
-                      setStage('plan')
-                      setPlanWorkspaceTab('overview')
-                    }}
-                  >
-                    Resume Last Plan
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+          <AnimatedHero
+            onStartPlanning={() => {
+              setStage('intake')
+              setCurrentStep(1)
+            }}
+            onExploreDemo={applyPrdExamplePreset}
+            canResume={Boolean(plan)}
+            onResumeLastPlan={() => {
+              setStage('plan')
+              setPlanWorkspaceTab('overview')
+            }}
+          />
 
           <div className="grid gap-4 md:grid-cols-3">
             <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
@@ -1250,6 +1390,15 @@ function App() {
               <div className="rounded-lg bg-base p-3"><strong>2.</strong> Resolve AP/IB/CLEP and transfer credit.</div>
               <div className="rounded-lg bg-base p-3"><strong>3.</strong> Generate optimized schedule and risk score.</div>
               <div className="rounded-lg bg-base p-3"><strong>4.</strong> Compare scenarios and adjust before exporting.</div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-stone-200 bg-white p-3 shadow-soft md:p-5">
+            <p className="px-2 text-xs uppercase tracking-[0.18em] text-brand">Pathway Milestones</p>
+            <h3 className="px-2 pt-2 text-xl font-semibold">Radial Orbital Timeline</h3>
+            <p className="px-2 pt-2 text-sm text-stone-600">Interactive + animated orbit showing the full journey from intake to admission readiness.</p>
+            <div className="mt-3 overflow-hidden rounded-2xl">
+              <RadialOrbitalTimeline timelineData={landingTimelineData} />
             </div>
           </div>
         </section>
@@ -1577,6 +1726,9 @@ function App() {
               <div className="hidden gap-2 sm:flex">
                 <button className="rounded-xl bg-accent px-4 py-2 text-sm text-white disabled:opacity-50" disabled={!pendingScenarios.length || !plan} onClick={() => void runWithoutPendingCredit()}>
                   Toggle Without Pending Credit
+                </button>
+                <button className="rounded-xl bg-brand px-4 py-2 text-sm text-white disabled:opacity-50" disabled={!plan || isSharingPlan} onClick={() => void shareEntirePlan()}>
+                  {isSharingPlan ? 'Preparing link...' : 'Share Entire Plan'}
                 </button>
                 <button className="rounded-xl bg-stone-800 px-4 py-2 text-sm text-white disabled:opacity-50" disabled={!plan} onClick={() => void downloadPdf()}>
                   Export PDF
@@ -2231,13 +2383,20 @@ function App() {
                         Evidence
                       </button>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="mt-2 grid grid-cols-3 gap-2">
                       <button
                         className="rounded-lg bg-accent px-3 py-2 text-xs text-white disabled:opacity-50"
                         disabled={!pendingScenarios.length || !plan}
                         onClick={() => void runWithoutPendingCredit()}
                       >
                         Toggle Pending Credit
+                      </button>
+                      <button
+                        className="rounded-lg bg-brand px-3 py-2 text-xs text-white disabled:opacity-50"
+                        disabled={!plan || isSharingPlan}
+                        onClick={() => void shareEntirePlan()}
+                      >
+                        {isSharingPlan ? 'Sharing...' : 'Share'}
                       </button>
                       <button
                         className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50"
