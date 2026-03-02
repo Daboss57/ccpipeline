@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { SpeedInsights } from '@vercel/speed-insights/react'
 
 import {
   type CreditResolutionResponse,
@@ -35,7 +34,7 @@ type ExamInput = {
 
 type PathwayType = 'direct_4yr' | 'cc_transfer' | 'cc_only'
 type PriorityType = 'fast' | 'balanced' | 'cost'
-type Stage = 'intake' | 'loading' | 'credit' | 'plan'
+type Stage = 'landing' | 'intake' | 'loading' | 'credit' | 'plan'
 type PlanWorkspaceTab = 'overview' | 'scenarios' | 'requirements' | 'adjust' | 'evidence'
 
 type ScenarioSnapshot = {
@@ -198,6 +197,13 @@ const igetcAreaLabels: Record<string, string> = {
   '7': 'Ethnic Studies',
 }
 
+const termSeasonOrder: Record<string, number> = {
+  Winter: 1,
+  Spring: 2,
+  Summer: 3,
+  Fall: 4,
+}
+
 function encodeState(state: FormState): string {
   return btoa(JSON.stringify(state))
 }
@@ -235,13 +241,23 @@ function decodeState(value: string | null): FormState | null {
   }
 }
 
+function getTermSortKey(termId: string): number {
+  const [yearPart, seasonPart] = termId.split('-')
+  const year = Number(yearPart)
+  const seasonOrder = termSeasonOrder[seasonPart] ?? 0
+  if (!Number.isFinite(year)) {
+    return -1
+  }
+  return year * 10 + seasonOrder
+}
+
 function App() {
   const [schools, setSchools] = useState<School[]>([])
   const [majors, setMajors] = useState<Major[]>([])
   const [courseInventory, setCourseInventory] = useState<CourseInventoryItem[]>([])
   const [formState, setFormState] = useState<FormState>(defaultState)
   const [currentStep, setCurrentStep] = useState(1)
-  const [stage, setStage] = useState<Stage>('intake')
+  const [stage, setStage] = useState<Stage>('landing')
 
   const [exams, setExams] = useState<ExamInput[]>(defaultExams)
   const [nextExamId, setNextExamId] = useState(8)
@@ -398,6 +414,11 @@ function App() {
     [schools, formState.schoolId],
   )
 
+  const selectedMajor = useMemo(
+    () => majors.find((major) => major.major_id === formState.majorId),
+    [majors, formState.majorId],
+  )
+
   const allPlannedCourses = useMemo(() => {
     if (!plan) {
       return [] as Array<{
@@ -526,6 +547,90 @@ function App() {
       missingCount,
     }
   }, [plan, requirementProgressGroups, validation])
+
+  const admissionsReadiness = useMemo(() => {
+    if (!plan) {
+      return null
+    }
+
+    const blockersCount = plan.admission_checklist.missing_blockers.length
+    const missingRequirementsCount = validation?.missing_requirements.length ?? 0
+
+    const issueOverloadTerms = new Set(
+      (validation?.issues ?? [])
+        .filter((issue) => issue.code === 'UNIT_OVERLOAD')
+        .map((issue) => issue.term_id)
+        .filter((value): value is string => Boolean(value)),
+    )
+    const overloadTermsCount = new Set([...(validation?.unit_overloads ?? []), ...Array.from(issueOverloadTerms)]).size
+
+    const targetGradTermKey = getTermSortKey(formState.gradTerm)
+    const plannedTermsWithCourses = plan.terms.filter((term) => term.courses.length > 0)
+    const lateTermsCount = plannedTermsWithCourses.filter((term) => getTermSortKey(term.term_id) > targetGradTermKey).length
+
+    const scorePenalty =
+      blockersCount * 15 +
+      missingRequirementsCount * 6 +
+      overloadTermsCount * 8 +
+      lateTermsCount * 12 +
+      (validation?.valid ? 0 : 5)
+
+    const score = Math.max(0, Math.min(100, 100 - scorePenalty))
+
+    const riskLevel: 'Low' | 'Medium' | 'High' =
+      score < 55 || blockersCount >= 2 || lateTermsCount > 0
+        ? 'High'
+        : score < 75 || missingRequirementsCount > 0 || overloadTermsCount > 0
+          ? 'Medium'
+          : 'Low'
+
+    const reasons: Array<{ label: string; severity: 'low' | 'medium' | 'high'; detail: string }> = []
+
+    reasons.push({
+      label: 'Missing blockers',
+      severity: blockersCount >= 2 ? 'high' : blockersCount === 1 ? 'medium' : 'low',
+      detail:
+        blockersCount > 0
+          ? `${blockersCount} blocker(s): ${plan.admission_checklist.missing_blockers.join(', ')}`
+          : 'No blockers detected in the current plan.',
+    })
+
+    reasons.push({
+      label: 'Timeline risk',
+      severity: lateTermsCount > 0 ? 'high' : 'low',
+      detail:
+        lateTermsCount > 0
+          ? `${lateTermsCount} planned term(s) extend past target graduation term ${formState.gradTerm}.`
+          : `Current schedule finishes within target graduation term ${formState.gradTerm}.`,
+    })
+
+    reasons.push({
+      label: 'Unit overload risk',
+      severity: overloadTermsCount >= 2 ? 'high' : overloadTermsCount === 1 ? 'medium' : 'low',
+      detail:
+        overloadTermsCount > 0
+          ? `${overloadTermsCount} term(s) exceed unit constraints and may require rebalancing.`
+          : 'No overloaded terms detected.',
+    })
+
+    if (missingRequirementsCount > 0) {
+      reasons.push({
+        label: 'Requirement completion risk',
+        severity: missingRequirementsCount >= 3 ? 'high' : 'medium',
+        detail: `${missingRequirementsCount} required course(s) still missing in the current horizon.`,
+      })
+    }
+
+    return {
+      score,
+      riskLevel,
+      reasons,
+      blockersCount,
+      overloadTermsCount,
+      lateTermsCount,
+      missingRequirementsCount,
+    }
+  }, [formState.gradTerm, plan, validation])
 
   const compareLeftScenario = savedScenarios.find((scenario) => scenario.id === compareLeftScenarioId)
   const compareRightScenario = savedScenarios.find((scenario) => scenario.id === compareRightScenarioId)
@@ -851,9 +956,10 @@ function App() {
       return
     }
 
+    const scenarioName = kind === 'no-ap' ? 'No AP' : kind === 'fast-track' ? 'Fast Track' : 'Light Load'
     setIsScenarioRunning(true)
-  setScenarioRunLabel(kind === 'no-ap' ? 'No AP' : kind === 'fast-track' ? 'Fast Track' : 'Light Load')
-  setStatus('Building scenario... this can take up to 20 seconds.')
+    setScenarioRunLabel(scenarioName)
+    setStatus(`Building ${scenarioName} scenario... this can take up to 60–90 seconds.`)
 
     try {
       const requestPayload = JSON.parse(JSON.stringify(originalRequest)) as {
@@ -891,25 +997,20 @@ function App() {
       const generated = (await Promise.race([
         generatePlan(requestPayload),
         new Promise<never>((_, reject) => {
-          window.setTimeout(() => reject(new Error('Scenario generation timed out.')), 20000)
+          window.setTimeout(() => reject(new Error('Scenario generation timed out after 90 seconds.')), 90000)
         }),
       ])) as { plan: PlanResult; validation: ValidationReport }
 
-      saveScenarioSnapshot(kind === 'no-ap' ? 'No AP' : kind === 'fast-track' ? 'Fast Track' : 'Light Load', generated.plan)
+      saveScenarioSnapshot(scenarioName, generated.plan)
 
       if (savedScenarios.length === 0) {
         saveScenarioSnapshot('Baseline', plan)
       }
 
-      setStatus(
-        kind === 'no-ap'
-          ? 'Generated No AP scenario.'
-          : kind === 'fast-track'
-            ? 'Generated Fast Track scenario.'
-            : 'Generated Light Load scenario.',
-      )
-    } catch {
-      setStatus('Scenario generation failed or timed out. Use Unlock if buttons remain disabled.')
+      setStatus(`Generated ${scenarioName} scenario.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Scenario generation failed.'
+      setStatus(`Could not generate ${scenarioName} scenario: ${message}`)
     } finally {
       setIsScenarioRunning(false)
       setScenarioRunLabel('')
@@ -1015,7 +1116,50 @@ function App() {
 
   return (
     <>
+    <div className="sticky top-0 z-40 border-b border-stone-200 bg-panel/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-brand">PathwayIQ</p>
+          <p className="text-sm font-semibold text-ink">College Pathway Platform</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+          <button className={`rounded-lg px-3 py-1.5 ${stage === 'landing' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`} onClick={() => setStage('landing')}>
+            Home
+          </button>
+          <button
+            className={`rounded-lg px-3 py-1.5 ${stage !== 'landing' && stage !== 'plan' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+            onClick={() => setStage('intake')}
+          >
+            Planner
+          </button>
+          <button
+            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            disabled={!plan}
+            onClick={() => {
+              if (!plan) return
+              setStage('plan')
+              setPlanWorkspaceTab('scenarios')
+            }}
+          >
+            Scenarios
+          </button>
+          <button
+            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            disabled={!plan}
+            onClick={() => {
+              if (!plan) return
+              setStage('plan')
+              setPlanWorkspaceTab('requirements')
+            }}
+          >
+            Requirements
+          </button>
+        </div>
+      </div>
+    </div>
+
     <main className="mx-auto max-w-7xl p-6 text-ink">
+      {stage !== 'landing' && (
       <header className="mb-8 rounded-3xl bg-panel/90 p-8 shadow-soft backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1042,6 +1186,74 @@ function App() {
           ))}
         </div>
       </header>
+      )}
+
+      {stage === 'landing' && (
+        <section className="space-y-6">
+          <div className="relative overflow-hidden rounded-3xl border border-brand/20 bg-gradient-to-br from-panel via-base to-brand/10 p-8 shadow-soft">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.2em] text-brand">Decision-first transfer planning</p>
+              <h1 className="mt-3 text-4xl font-semibold leading-tight">Plan like a product: clear paths, real risks, smarter decisions.</h1>
+              <p className="mt-3 text-sm text-stone-700">
+                Build a complete pathway with AI scheduling, admissions readiness forecasting, scenario comparison, and requirement tracking.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  className="rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white"
+                  onClick={() => {
+                    setStage('intake')
+                    setCurrentStep(1)
+                  }}
+                >
+                  Start Planning
+                </button>
+                <button className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white" onClick={applyPrdExamplePreset}>
+                  Explore Demo Plan
+                </button>
+                {plan && (
+                  <button
+                    className="rounded-xl bg-stone-800 px-4 py-2 text-sm font-medium text-white"
+                    onClick={() => {
+                      setStage('plan')
+                      setPlanWorkspaceTab('overview')
+                    }}
+                  >
+                    Resume Last Plan
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
+              <p className="text-xs uppercase tracking-[0.18em] text-brand">Readiness Intelligence</p>
+              <h3 className="mt-2 text-lg font-semibold">Score + Risk Forecast</h3>
+              <p className="mt-2 text-sm text-stone-600">See one readiness score per target school/major with blockers, overload, and timeline reasons.</p>
+            </article>
+            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
+              <p className="text-xs uppercase tracking-[0.18em] text-brand">Scenario Studio</p>
+              <h3 className="mt-2 text-lg font-semibold">What-if Diffing</h3>
+              <p className="mt-2 text-sm text-stone-600">Generate No AP/Fast/Light variants and compare added, removed, moved classes with metric deltas.</p>
+            </article>
+            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
+              <p className="text-xs uppercase tracking-[0.18em] text-brand">Requirement Clarity</p>
+              <h3 className="mt-2 text-lg font-semibold">Progress by Category</h3>
+              <p className="mt-2 text-sm text-stone-600">Track done, planned, and missing requirements in grouped chips instead of dense technical tables.</p>
+            </article>
+          </div>
+
+          <div className="rounded-2xl border border-stone-200 bg-white p-5">
+            <p className="text-sm font-semibold">How it works</p>
+            <div className="mt-3 grid gap-3 text-sm md:grid-cols-4">
+              <div className="rounded-lg bg-base p-3"><strong>1.</strong> Enter profile, target school, and major.</div>
+              <div className="rounded-lg bg-base p-3"><strong>2.</strong> Resolve AP/IB/CLEP and transfer credit.</div>
+              <div className="rounded-lg bg-base p-3"><strong>3.</strong> Generate optimized schedule and risk score.</div>
+              <div className="rounded-lg bg-base p-3"><strong>4.</strong> Compare scenarios and adjust before exporting.</div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {stage === 'intake' && (
         <section className="rounded-3xl bg-panel p-6 shadow-soft">
@@ -1454,6 +1666,55 @@ function App() {
 
                 {planWorkspaceTab === 'overview' && (
                 <div className="mt-4 space-y-4">
+                  {admissionsReadiness && (
+                    <div className="rounded-xl border border-stone-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold">Admissions Readiness Score</h3>
+                          <p className="mt-1 text-xs text-stone-600">
+                            Target: {selectedSchool?.name ?? formState.schoolId} • {selectedMajor?.major_name ?? formState.majorId}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-base px-4 py-2 text-center">
+                          <p className="text-2xl font-semibold">{admissionsReadiness.score}</p>
+                          <p className="text-xs text-stone-600">/100</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                        <p className="rounded-md bg-base p-2 text-sm"><strong>Risk level:</strong> {admissionsReadiness.riskLevel}</p>
+                        <p className="rounded-md bg-base p-2 text-sm"><strong>Blockers:</strong> {admissionsReadiness.blockersCount}</p>
+                        <p className="rounded-md bg-base p-2 text-sm"><strong>Timeline late terms:</strong> {admissionsReadiness.lateTermsCount}</p>
+                        <p className="rounded-md bg-base p-2 text-sm"><strong>Overload terms:</strong> {admissionsReadiness.overloadTermsCount}</p>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-sm font-medium">Risk forecast — why this score</p>
+                        <ul className="mt-2 space-y-2 text-sm">
+                          {admissionsReadiness.reasons.map((reason) => (
+                            <li key={reason.label} className="rounded-lg border border-stone-200 p-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium">{reason.label}</p>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs ${
+                                    reason.severity === 'high'
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : reason.severity === 'medium'
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-emerald-100 text-emerald-700'
+                                  }`}
+                                >
+                                  {reason.severity}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-stone-700">{reason.detail}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
                   {guidedNarrative && (
                     <div className="rounded-xl border border-stone-200 bg-white p-4">
                       <h3 className="font-semibold">Guided Plan Workspace</h3>
@@ -1994,7 +2255,6 @@ function App() {
         </section>
       )}
     </main>
-    <SpeedInsights />
     </>
   )
 }
