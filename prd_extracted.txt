@@ -1,0 +1,171 @@
+PathwayIQ
+AI-Powered College Pathway Planner
+1. Executive Summary
+PathwayIQ is a web application that helps high school and community college students build a precise, personalized academic roadmap toward a bachelor's degree — accounting for their current grade level, AP/IB exam credits, chosen major, target university, and desired graduation timeline.
+The product solves a painful and costly problem: students routinely waste semesters taking wrong courses, retaking classes unnecessarily, or failing to leverage credits they already have. PathwayIQ eliminates this with a Gemini AI-powered planner backed by a structured database of official credit policies, ASSIST.org articulation agreements, IGETC requirements, and 4-year university curriculum data.
+1.1 The Core User Journey
+A student answers a short set of questions (grade level, graduation goal, pathway type, AP/IB scores, target major + school). The app then produces an interactive, editable semester plan with every course they need to take — and when to take it — to hit their goal.
+2. Problem Statement
+2.1 The Problem
+Navigating college planning is fragmented, confusing, and often requires expensive consultants or luck. Students face:
+Unclear credit transfer policies between CCs and UCs/CSUs
+No tool that integrates AP/IB credits + CC articulation + major requirements together
+Course sequencing mistakes that add a semester or year to their degree
+Wasted prerequisite chains — taking Calc I at CC when AP Calc BC already covers it
+First-generation students especially lack access to this institutional knowledge
+2.2 Market Gap
+Existing tools are partial solutions only:
+PathwayIQ is the first product to combine live database accuracy with AI planning intelligence into a single, student-facing tool.
+3. Goals & Non-Goals
+3.1 Goals
+Allow students to input their academic profile and instantly receive a personalized degree pathway
+Support UC system (all 9 undergraduate campuses), CSU system (all 23 campuses), and California Community Colleges
+Handle AP, IB, CLEP, and dual enrollment credits with accurate per-school credit policies
+Support both the CC→Transfer pathway (2+2 or accelerated) and direct 4-year university pathway
+Respect HS enrollment constraints — cap course load when student is still in high school
+Account for IGETC completion requirements for CC→UC/CSU transfer
+Use Gemini AI to generate schedule logic and natural language explanations; use a structured database for all official credit rules
+Provide a semester-by-semester, course-by-course visual plan the student can explore and optionally adjust
+3.2 Non-Goals (v1.0)
+Out-of-state or private universities (Harvard, MIT, etc.) — future version
+Graduate school planning
+Financial aid or scholarship planning
+Real-time integration with registrar systems for live seat availability
+Mobile native apps — responsive web only at launch
+Account creation / persistence — stateless for v1.0; save via export
+4. User Personas
+5. Feature Specifications
+5.1 Student Profile Intake
+A multi-step form collecting all inputs needed to build the plan. Designed to be completable in under 5 minutes.
+Step 1 — Academic Background
+Current grade level: 9th, 10th, 11th, 12th, or "1st year CC", "2nd year CC"
+Enrollment status: Full-time high school, Dual enrollment, CC only, Gap year
+Target graduation date (by semester: e.g. Spring 2028)
+Step 2 — Credit Bank
+AP exams: searchable dropdown of all 38 AP subjects; input score (3/4/5) or "score pending"
+IB exams: HL/SL, subject, score (4–7) or "score pending"
+CLEP exams: subject + score
+Dual enrollment / concurrent CC courses: course name, school, grade
+The system maps these to specific credit grants per target school using the database
+Step 3 — Pathway Choice
+Option A: Direct 4-year university (select UC or CSU campus, indicate if already admitted)
+Option B: CC first then transfer (select CC + target UC/CSU for transfer)
+Option C: CC only (associate's degree or transfer path without specifying 4-year yet)
+Step 4 — Major + School
+Select target university from supported list
+Select major from that university's catalog (database-backed, searchable)
+Option to select a "most likely" major if undecided, for planning purposes
+Step 5 — Constraints & Preferences
+Maximum units per semester (light / standard / heavy — or custom number)
+Semesters to skip (e.g. "I'm not taking summer 2026")
+Priority: Finish as fast as possible / Balanced load / Minimize cost (more CC time)
+5.2 Hybrid AI + Database Planning Engine
+This is the core of PathwayIQ. The engine has two distinct layers:
+Layer 1 — Credit & Articulation Database
+A structured database containing verified, citable policy data. This layer is NOT AI-generated — it is curated from official sources and updated regularly.
+AP/IB credit tables for every UC and CSU campus
+ASSIST.org articulation data: which CC courses satisfy which UC/CSU major requirements
+IGETC course lists per CC
+4-year major curriculum maps (required courses, electives, unit totals) per UC/CSU major
+Prerequisite chains for all courses in supported majors
+Layer 2 — Gemini AI Scheduling Engine
+Given the student profile + resolved credit map from Layer 1, Gemini is prompted to:
+Assign courses to specific semesters respecting prerequisite chains
+Respect unit caps (stricter caps during HS enrollment semesters)
+Balance course load across semesters
+Flag semesters where IGETC must be completed before transfer
+Generate a natural-language explanation of each semester plan
+Identify the critical path — which course sequence is the bottleneck to graduation
+Suggest alternates if a course isn't offered in a given semester
+5.3 Pathway Output — The Plan View
+The main deliverable: a visual, interactive semester-by-semester roadmap.
+Plan Layout
+Timeline view: each semester is a column or card showing course names, units, and type (major req / GE / elective)
+Color coding: courses from AP credit (green), CC courses (blue), university courses (purple), completed (gray)
+Unit counter per semester and running total
+"Transfer point" marker clearly shown for CC→transfer pathways
+Milestone badges: IGETC completed, major prep done, total units reached
+Plan Interactivity
+Click any course to see: course description, why it's here, which requirement it satisfies
+"What if" toggle: remove an AP credit and watch the plan rebuild
+Drag-and-drop course to a different semester — Gemini checks if prerequisites are violated and warns
+"Lighten this semester" button — AI redistributes one course forward
+Export to PDF or shareable link
+5.4 Credit Resolution Summary
+Before showing the full plan, PathwayIQ shows the student a credit resolution card:
+Table of every AP/IB exam entered → what credit it grants at their specific target school
+Total units waived, GE categories covered, specific courses skipped
+Warnings for credits that require a minimum score the student may not meet
+Clear note if any credits are "pending score" and how the plan changes if they don't receive credit
+5.5 IGETC Tracker (CC→Transfer Path)
+Visual checklist of all 7 IGETC areas
+Shows which are satisfied by AP credits, which by planned CC courses
+Warns if student is on track to transfer without completing IGETC (delays transfer acceptance)
+6. Technical Architecture
+6.1 System Overview
+6.2 Gemini API Integration
+Prompt Architecture
+Each planning request sends Gemini a structured system prompt + a JSON context payload containing:
+Student profile (grade, constraints, semester availability)
+Resolved credit map (which courses/GEs are already satisfied)
+Major requirement list with prerequisite graph (from database)
+IGETC completion status (for transfer paths)
+Optimization preference (fast / balanced / cost-efficient)
+Gemini returns a structured JSON response:
+semesters[]: array of semester objects, each with courses[], units, notes
+critical_path[]: the prerequisite chain determining earliest possible graduation
+warnings[]: any constraint violations, pending-score risks, or gaps
+summary: natural language explanation of the full plan
+6.3 Database Schema — Key Tables
+7. Data Strategy
+7.1 Data Sources
+AP Credit Policies: Each UC and CSU campus publishes official AP credit tables (PDF or web). Scraped + manually verified annually.
+IB Credit Policies: Same approach as AP; published per campus.
+CC→UC/CSU Articulation: ASSIST.org provides downloadable articulation agreements. ASSIST also offers a public API for some data.
+IGETC Course Lists: Published by each CC in their catalog. Requires per-CC scraping.
+Major Curriculum Maps: Available from each university's department websites. Most detailed and most labor-intensive to capture.
+Course Prerequisites: Embedded in university course catalogs (often PDF or searchable web catalogs).
+7.2 Data Update Cadence
+Full refresh: Once per academic year (July–August, before fall enrollment)
+Spot updates: Triggered by user-reported discrepancies or known policy changes
+Version tagging: Every plan generated is tagged with the data version used, so old plans can flag if policies have changed
+7.3 Launch Data Scope
+v1.0 will launch with full data coverage for:
+All 9 UC undergraduate campuses (AP/IB credits + major curricula for top 20 majors per campus)
+All 23 CSU campuses (AP/IB credits; major curricula for top 10 majors per campus)
+Top 30 California Community Colleges by transfer volume to UC/CSU (ASSIST articulation + IGETC)
+8. User Experience Flow
+8.1 Full Flow
+Landing page → CTA: "Build My Plan"
+Intake wizard: 5 steps (profile, credits, pathway, major/school, constraints) — progress bar shown
+"Calculating your pathway..." loading screen (Gemini call happens here, 3–8 seconds)
+Credit Resolution Summary screen — confirm what AP/IB credits apply
+Full Pathway Plan view — interactive semester timeline
+User can adjust inputs, re-run plan, export PDF, or share link
+8.2 HS Student Edge Case Handling
+When the student indicates they are currently enrolled in high school:
+Any semesters while still in HS are flagged as "HS Active" semesters
+The AI enforces a strict unit cap for these semesters (default: max 2 college courses / 6 units concurrent with HS)
+The system surfaces a note: "We've limited your college course load for Spring 2026 since you'll still be in high school"
+Summer terms after senior year are treated as post-HS and allow standard loads
+8.3 Score Pending Handling
+AP/IB scores marked "pending" are planned optimistically (credit assumed)
+A banner on the plan reads: "This plan assumes you receive credit for [X] exams. If scores don't meet the threshold, [Y] courses may be added."
+A toggle lets the student view the plan "with credit" vs. "without credit" for any pending exam
+9. MVP Scope & Phasing
+10. Success Metrics
+11. Risks & Mitigations
+12. Open Questions
+Should v1.0 require account creation for plan saving, or use shareable URL state only?
+How do we handle majors with impacted/selective admission (e.g. UCSD CSE is impacted — does the plan note the likelihood of admission, or assume it)?
+Will we support double majors or minors in v1.0?
+How do we handle quarter-system schools (UCLA, UCSD, UCSB are quarter-based) vs. semester-based CSUs?
+Should the tool surface a "likelihood of transfer admission" signal based on the student's major + GPA + planned coursework?
+Is there a business model consideration (free vs. freemium) that affects feature gating?
+13. Appendix
+A. Supported AP Exams (38 total)
+Art History, Biology, Calculus AB, Calculus BC, Chemistry, Chinese Language, Computer Science A, Computer Science Principles, English Language, English Literature, Environmental Science, European History, French Language, German Language, Government & Politics (US), Government & Politics (Comparative), Human Geography, Italian Language, Japanese Language, Latin, Macroeconomics, Microeconomics, Music Theory, Physics 1, Physics 2, Physics C: E&M, Physics C: Mechanics, Psychology, Research, Seminar, Spanish Language, Spanish Literature, Statistics, Studio Art: 2D, Studio Art: 3D, Studio Art: Drawing, US History, World History
+B. UC Campuses in Scope
+UC Berkeley, UCLA, UC San Diego, UC Davis, UC Santa Barbara, UC Irvine, UC Santa Cruz, UC Riverside, UC Merced
+C. Glossary
+— End of Document —
