@@ -1279,23 +1279,23 @@ function App() {
   return (
     <>
     <div className="sticky top-0 z-40 border-b border-stone-200 bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
+      <div className="mx-auto flex max-w-7xl flex-col items-start gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-brand">PathwayIQ</p>
           <p className="text-sm font-semibold text-ink">College Pathway Platform</p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-          <button className={`rounded-lg px-3 py-1.5 ${stage === 'landing' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`} onClick={() => setStage('landing')}>
+        <div className="flex w-full flex-wrap gap-2 text-sm sm:w-auto sm:justify-end">
+          <button className={`min-h-[44px] w-full rounded-lg px-3.5 py-2 sm:w-auto ${stage === 'landing' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`} onClick={() => setStage('landing')}>
             Home
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage !== 'landing' && stage !== 'plan' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+            className={`min-h-[44px] w-full rounded-lg px-3.5 py-2 sm:w-auto ${stage !== 'landing' && stage !== 'plan' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
             onClick={() => setStage('intake')}
           >
             Planner
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            className={`min-h-[44px] w-full rounded-lg px-3.5 py-2 sm:w-auto ${stage === 'plan' && planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
             disabled={!plan}
             onClick={() => {
               if (!plan) return
@@ -1306,7 +1306,7 @@ function App() {
             Scenarios
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            className={`min-h-[44px] w-full rounded-lg px-3.5 py-2 sm:w-auto ${stage === 'plan' && planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
             disabled={!plan}
             onClick={() => {
               if (!plan) return
@@ -1320,18 +1320,18 @@ function App() {
       </div>
     </div>
 
-    <main className="mx-auto max-w-7xl p-6 text-ink">
+    <main className="mx-auto max-w-7xl px-4 py-6 text-ink sm:px-6">
       {stage !== 'landing' && (
-      <header className="mb-8 rounded-3xl bg-panel/90 p-8 shadow-soft backdrop-blur">
+      <header className="mb-8 rounded-3xl bg-panel/90 p-6 shadow-soft backdrop-blur sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-brand">PathwayIQ</p>
-            <h1 className="mt-2 text-4xl font-semibold">AI-Powered College Pathway Planner</h1>
+            <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">AI-Powered College Pathway Planner</h1>
             <p className="mt-3 max-w-3xl text-sm text-stone-700">
               PRD Flow: 5-step intake → credit resolution summary → full pathway timeline.
             </p>
           </div>
-          <button className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white" onClick={applyPrdExamplePreset}>
+          <button className="min-h-[44px] rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white" onClick={applyPrdExamplePreset}>
             Load PRD Example
           </button>
         </div>
@@ -2353,31 +2353,31 @@ function App() {
                   <div className="mx-auto max-w-7xl">
                     <div className="grid grid-cols-5 gap-2">
                       <button
-                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'overview' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        className={`min-h-[44px] rounded-lg px-2.5 py-2 text-[11px] ${planWorkspaceTab === 'overview' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
                         onClick={() => setPlanWorkspaceTab('overview')}
                       >
                         Overview
                       </button>
                       <button
-                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        className={`min-h-[44px] rounded-lg px-2.5 py-2 text-[11px] ${planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
                         onClick={() => setPlanWorkspaceTab('scenarios')}
                       >
                         Scenarios
                       </button>
                       <button
-                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        className={`min-h-[44px] rounded-lg px-2.5 py-2 text-[11px] ${planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
                         onClick={() => setPlanWorkspaceTab('requirements')}
                       >
                         Reqs
                       </button>
                       <button
-                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'adjust' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        className={`min-h-[44px] rounded-lg px-2.5 py-2 text-[11px] ${planWorkspaceTab === 'adjust' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
                         onClick={() => setPlanWorkspaceTab('adjust')}
                       >
                         Adjust
                       </button>
                       <button
-                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'evidence' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        className={`min-h-[44px] rounded-lg px-2.5 py-2 text-[11px] ${planWorkspaceTab === 'evidence' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
                         onClick={() => setPlanWorkspaceTab('evidence')}
                       >
                         Evidence
@@ -2385,21 +2385,21 @@ function App() {
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       <button
-                        className="rounded-lg bg-accent px-3 py-2 text-xs text-white disabled:opacity-50"
+                        className="min-h-[44px] rounded-lg bg-accent px-3.5 py-2.5 text-xs text-white disabled:opacity-50"
                         disabled={!pendingScenarios.length || !plan}
                         onClick={() => void runWithoutPendingCredit()}
                       >
                         Toggle Pending Credit
                       </button>
                       <button
-                        className="rounded-lg bg-brand px-3 py-2 text-xs text-white disabled:opacity-50"
+                        className="min-h-[44px] rounded-lg bg-brand px-3.5 py-2.5 text-xs text-white disabled:opacity-50"
                         disabled={!plan || isSharingPlan}
                         onClick={() => void shareEntirePlan()}
                       >
                         {isSharingPlan ? 'Sharing...' : 'Share'}
                       </button>
                       <button
-                        className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50"
+                        className="min-h-[44px] rounded-lg bg-stone-800 px-3.5 py-2.5 text-xs text-white disabled:opacity-50"
                         disabled={!plan}
                         onClick={() => void downloadPdf()}
                       >
