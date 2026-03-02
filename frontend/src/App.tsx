@@ -1949,52 +1949,93 @@ function App() {
 
       {stage === 'credit' && (
         <section className="space-y-6">
-          <div className="rounded-3xl bg-panel p-6 shadow-soft">
-            <h2 className="text-2xl font-semibold">Credit Resolution Summary</h2>
-            {!resolvedMap && <p className="mt-2 text-sm text-stone-600">No credit data available.</p>}
+          <div className="relative bg-white border-2 border-gold/40 p-8 shadow-deco">
+            {/* Corner decorations */}
+            <div className="absolute -top-2 -left-2 w-12 h-12 border-t-2 border-l-2 border-gold pointer-events-none" />
+            <div className="absolute -top-2 -right-2 w-12 h-12 border-t-2 border-r-2 border-gold pointer-events-none" />
+            <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-2 border-l-2 border-gold pointer-events-none" />
+            <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-2 border-r-2 border-gold pointer-events-none" />
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px w-8 bg-gold" />
+              <h2 className="font-display text-4xl font-semibold text-navy">Credit Resolution Summary</h2>
+              <div className="flex-1 h-px bg-gold" />
+            </div>
+
+            {!resolvedMap && <p className="text-sm text-slate">No credit data available.</p>}
             {resolvedMap && (
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
-                  <p><strong>Units waived:</strong> {resolvedMap.units_waived}</p>
-                  <p className="mt-1"><strong>Courses satisfied:</strong> {resolvedMap.satisfied_courses.join(', ') || 'None'}</p>
-                  <p className="mt-1"><strong>GE areas satisfied:</strong> {resolvedMap.satisfied_ge_areas.join(', ') || 'None'}</p>
-                  <p className="mt-1"><strong>Pending exams:</strong> {resolvedMap.pending_exam_names.join(', ') || 'None'}</p>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="border-2 border-gold/30 bg-parchment p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate">Credit Overview</p>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-baseline border-b border-gold/20 pb-2">
+                      <span className="text-slate">Units waived:</span>
+                      <span className="font-display text-2xl font-semibold text-gold">{resolvedMap.units_waived}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate font-semibold">Courses satisfied:</span>
+                      <p className="mt-1 text-navy">{resolvedMap.satisfied_courses.join(', ') || 'None'}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate font-semibold">GE areas satisfied:</span>
+                      <p className="mt-1 text-navy">{resolvedMap.satisfied_ge_areas.join(', ') || 'None'}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate font-semibold">Pending exams:</span>
+                      <p className="mt-1 text-navy">{resolvedMap.pending_exam_names.join(', ') || 'None'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
-                  <p className="font-semibold">Credit assumptions</p>
-                  <ul className="mt-2 space-y-1">
+
+                <div className="border-2 border-gold/30 bg-parchment p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate">Credit Assumptions</p>
+                  </div>
+                  <ul className="space-y-2 text-sm">
                     {resolvedMap.condition_notes.map((note) => (
-                      <li key={note} className="text-amber-700">• {note}</li>
+                      <li key={note} className="flex gap-2 text-gold-dark">
+                        <span className="flex-shrink-0">▸</span>
+                        <span>{note}</span>
+                      </li>
                     ))}
-                    {!resolvedMap.condition_notes.length && <li className="text-stone-600">No conditional notes.</li>}
+                    {!resolvedMap.condition_notes.length && (
+                      <li className="text-slate italic">No conditional notes.</li>
+                    )}
                   </ul>
                 </div>
               </div>
             )}
 
             {!!resolvedItems.length && (
-              <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4 text-sm">
-                <p className="font-semibold">Resolved Credit Details (Source + Policy Year)</p>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
+              <div className="mt-6 border-2 border-gold/30 bg-parchment p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  <p className="text-xs uppercase tracking-wider font-semibold text-slate">Resolved Credit Details (Source + Policy Year)</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="border-b border-stone-200 text-stone-600">
-                        <th className="px-2 py-2">Exam</th>
-                        <th className="px-2 py-2">Applied Credit</th>
-                        <th className="px-2 py-2">Source</th>
-                        <th className="px-2 py-2">Policy Year</th>
+                      <tr className="border-b-2 border-gold/30">
+                        <th className="px-3 py-3 text-left font-semibold text-navy uppercase tracking-wider text-xs">Exam</th>
+                        <th className="px-3 py-3 text-left font-semibold text-navy uppercase tracking-wider text-xs">Applied Credit</th>
+                        <th className="px-3 py-3 text-left font-semibold text-navy uppercase tracking-wider text-xs">Source</th>
+                        <th className="px-3 py-3 text-left font-semibold text-navy uppercase tracking-wider text-xs">Policy Year</th>
                       </tr>
                     </thead>
                     <tbody>
                       {resolvedItems.map((item, index) => (
-                        <tr key={`${item.exam_type}-${item.exam_name}-${index}`} className="border-b border-stone-100">
-                          <td className="px-2 py-2">{item.exam_name} ({item.exam_type})</td>
-                          <td className="px-2 py-2">
-                            {item.courses_satisfied.join(', ') || 'No course direct-equivalent'}
-                            <div className="text-xs text-stone-500">Min score {item.min_score} • {item.units_granted} units</div>
+                        <tr key={`${item.exam_type}-${item.exam_name}-${index}`} className="border-b border-gold/10">
+                          <td className="px-3 py-3 text-navy">{item.exam_name} ({item.exam_type})</td>
+                          <td className="px-3 py-3">
+                            <p className="text-navy">{item.courses_satisfied.join(', ') || 'No course direct-equivalent'}</p>
+                            <p className="text-xs text-slate mt-1">Min score {item.min_score} • {item.units_granted} units</p>
                           </td>
-                          <td className="px-2 py-2">{item.source.source_name}</td>
-                          <td className="px-2 py-2">{item.source.policy_year}</td>
+                          <td className="px-3 py-3 text-navy">{item.source.source_name}</td>
+                          <td className="px-3 py-3 text-slate">{item.source.policy_year}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2004,33 +2045,42 @@ function App() {
             )}
 
             {!!resolutionWarnings.length && (
-              <div className="mt-4 rounded-xl border border-amber-300 bg-white p-4 text-sm">
-                <p className="font-semibold">Resolution warnings</p>
-                <ul className="mt-2 space-y-1">
+              <div className="mt-6 border-2 border-copper bg-white p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-copper rotate-45" />
+                  <p className="text-sm uppercase tracking-wider font-semibold text-copper">Resolution Warnings</p>
+                </div>
+                <ul className="space-y-2 text-sm">
                   {resolutionWarnings.map((warning, index) => (
-                    <li key={`${warning.code}-${index}`}>• {warning.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!!pendingScenarios.length && (
-              <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4 text-sm">
-                <p className="font-semibold">Pending-score what-if impacts</p>
-                <ul className="mt-2 space-y-2">
-                  {pendingScenarios.map((scenario) => (
-                    <li key={scenario.exam_name}>
-                      <p className="font-medium">{scenario.exam_name}</p>
-                      <p className="text-stone-600">If no credit: add {scenario.added_courses_if_no_credit.join(', ') || 'No additional courses'}</p>
+                    <li key={`${warning.code}-${index}`} className="flex gap-2 text-copper">
+                      <span className="flex-shrink-0">▸</span>
+                      <span>{warning.message}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            {!!pendingScenarios.length && (
+              <div className="mt-6 border-2 border-gold/30 bg-parchment p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  <p className="text-xs uppercase tracking-wider font-semibold text-slate">Pending-Score What-If Impacts</p>
+                </div>
+                <ul className="space-y-3 text-sm">
+                  {pendingScenarios.map((scenario) => (
+                    <li key={scenario.exam_name} className="border-l-2 border-gold pl-4">
+                      <p className="font-semibold text-navy">{scenario.exam_name}</p>
+                      <p className="text-slate mt-1">If no credit: add {scenario.added_courses_if_no_credit.join(', ') || 'No additional courses'}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-8 pt-6 border-t-2 border-gold/30 flex flex-wrap gap-4">
               <button
-                className="rounded-xl bg-brand px-4 py-2 text-sm text-white"
+                className="px-8 py-3 bg-gold text-navy border-2 border-gold uppercase tracking-wider text-sm font-semibold hover:bg-gold-light transition-all duration-300"
                 onClick={() => {
                   setPlanWorkspaceTab('overview')
                   setStage('plan')
@@ -2038,7 +2088,10 @@ function App() {
               >
                 Continue to Full Plan
               </button>
-              <button className="rounded-xl bg-stone-200 px-4 py-2 text-sm" onClick={startOver}>
+              <button
+                className="px-6 py-3 border-2 border-slate/30 text-slate uppercase tracking-wider text-sm font-semibold hover:bg-slate/5 transition-all duration-300"
+                onClick={startOver}
+              >
                 Edit Intake
               </button>
             </div>
