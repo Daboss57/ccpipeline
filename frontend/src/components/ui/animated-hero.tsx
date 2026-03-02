@@ -1,5 +1,5 @@
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Sparkles, Target } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowRight, BookOpen, BarChart2 } from 'lucide-react'
 import { useRef } from 'react'
 
 type AnimatedHeroProps = {
@@ -11,75 +11,106 @@ type AnimatedHeroProps = {
 
 export default function AnimatedHero({ onStartPlanning, onExploreDemo, onResumeLastPlan, canResume }: AnimatedHeroProps) {
   const sectionRef = useRef<HTMLDivElement | null>(null)
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] })
-  const y = useTransform(scrollYProgress, [0, 1], [0, 120])
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.92])
+
+  const fadeIn = (delay = 0) => ({
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay },
+  })
 
   return (
-    <section ref={sectionRef} className="relative min-h-[82vh] overflow-hidden rounded-3xl border border-brand/30 bg-stone-950 p-4 text-white shadow-soft sm:p-6 md:p-10">
-      <motion.div className="absolute inset-0" style={{ y }}>
-        <div className="absolute -left-32 -top-24 h-96 w-96 rounded-full bg-cyan-500/30 blur-3xl" />
-        <div className="absolute right-[-120px] top-20 h-[28rem] w-[28rem] rounded-full bg-violet-500/30 blur-3xl" />
-        <div className="absolute bottom-[-120px] left-1/3 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
-      </motion.div>
+    <section
+      ref={sectionRef}
+      className="relative overflow-hidden rounded-2xl border border-border bg-brand text-white"
+      style={{ minHeight: '72vh' }}
+    >
+      {/* Subtle grid texture */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.6) 39px, rgba(255,255,255,0.6) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.6) 39px, rgba(255,255,255,0.6) 40px)',
+        }}
+      />
+      {/* Warm accent bleed — top-right corner */}
+      <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-bl-full bg-accent/20" />
 
-      <div className="relative z-10 grid min-h-[70vh] items-center gap-8 lg:grid-cols-2">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-cyan-200">
-            <Sparkles size={14} />
-            Admissions Intelligence
-          </p>
-          <h1 className="mt-5 text-3xl font-semibold leading-tight sm:text-4xl md:text-6xl">
-            Build the smartest
-            <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent"> transfer plan </span>
+      <div className="relative z-10 grid min-h-[72vh] items-center gap-10 px-8 py-14 sm:px-12 md:px-16 lg:grid-cols-[1fr_auto]">
+        {/* LEFT — headline */}
+        <div className="max-w-2xl">
+          <motion.p {...fadeIn(0)} className="mb-4 flex items-center gap-2 font-mono text-[10px] uppercase tracking-academic text-white/50">
+            <BookOpen size={11} />
+            PathwayIQ · Admissions Intelligence
+          </motion.p>
+
+          <motion.h1
+            {...fadeIn(0.08)}
+            className="font-serif text-4xl font-semibold leading-[1.12] tracking-tight sm:text-5xl md:text-6xl"
+          >
+            The smartest
+            <br />
+            <span className="italic text-accent/90">transfer plan</span>
+            <br />
             in one workspace.
-          </h1>
-          <p className="mt-5 max-w-xl text-sm text-stone-200 md:text-base">
-            PathwayIQ combines credit resolution, scenario simulation, and admissions-readiness forecasting so every semester decision is explainable.
-          </p>
+          </motion.h1>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <button className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-stone-900 sm:w-auto" onClick={onStartPlanning}>
+          <motion.div {...fadeIn(0.16)} className="mt-5 h-px w-12 bg-accent/70" />
+
+          <motion.p {...fadeIn(0.22)} className="mt-5 max-w-lg text-sm leading-relaxed text-white/65 md:text-base">
+            PathwayIQ combines credit resolution, scenario simulation, and admissions-readiness forecasting — so every semester decision is explainable and evidence-backed.
+          </motion.p>
+
+          <motion.div {...fadeIn(0.3)} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <button
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-white/90 bg-white px-5 py-2.5 text-sm font-medium text-brand transition-colors hover:bg-white/90 sm:w-auto"
+              onClick={onStartPlanning}
+            >
               Start Planning
               <ArrowRight size={14} />
             </button>
-            <button className="min-h-[44px] w-full rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white sm:w-auto" onClick={onExploreDemo}>
+            <button
+              className="min-h-[44px] w-full rounded-lg border border-white/20 bg-white/8 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/15 sm:w-auto"
+              onClick={onExploreDemo}
+            >
               Explore Demo
             </button>
             {canResume && onResumeLastPlan && (
-              <button className="min-h-[44px] w-full rounded-xl border border-cyan-300/30 bg-cyan-400/10 px-4 py-2.5 text-sm font-semibold text-cyan-100 sm:w-auto" onClick={onResumeLastPlan}>
+              <button
+                className="min-h-[44px] w-full rounded-lg border border-accent/40 bg-accent/10 px-5 py-2.5 text-sm font-medium text-white/90 transition-colors hover:bg-accent/20 sm:w-auto"
+                onClick={onResumeLastPlan}
+              >
                 Resume Last Plan
               </button>
             )}
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
-        <motion.div style={{ scale }} className="relative mx-auto w-full max-w-xl">
-          <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-3 backdrop-blur-xl">
-            <img
-              src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1400&q=80"
-              alt="Students planning coursework"
-              className="h-72 w-full rounded-xl object-cover sm:h-[420px] md:h-[520px]"
-            />
-            <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-t from-stone-950/70 via-transparent to-transparent" />
-            <div className="absolute bottom-5 left-5 right-5 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-white/20 bg-black/40 p-3 backdrop-blur">
-                <p className="text-xs text-cyan-200">Readiness Score</p>
-                <p className="text-2xl font-semibold">86 / 100</p>
-              </div>
-              <div className="rounded-lg border border-white/20 bg-black/40 p-3 backdrop-blur">
-                <p className="text-xs text-emerald-200">Risk Forecast</p>
-                <p className="text-sm font-semibold">Low • 0 blockers</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute -left-8 -top-8 rounded-xl border border-white/20 bg-black/40 p-3 backdrop-blur">
-            <p className="inline-flex items-center gap-2 text-xs text-cyan-100">
-              <Target size={14} />
-              Target: UC San Diego CS
-            </p>
-          </div>
+        {/* RIGHT — stat cards */}
+        <motion.div
+          {...fadeIn(0.2)}
+          className="hidden flex-col gap-4 lg:flex"
+          style={{ minWidth: '220px' }}
+        >
+          {[
+            { label: 'Readiness Score', value: '86 / 100', sub: 'Low risk · 0 blockers', icon: BarChart2 },
+            { label: 'Major Prep Coverage', value: '92%', sub: 'UC San Diego — CS', icon: BookOpen },
+            { label: 'Transferable Units', value: '76 units', sub: 'Resolved via AP + CC', icon: BookOpen },
+          ].map(({ label, value, sub, icon: Icon }, i) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.28 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="rounded-xl border border-white/12 bg-white/8 px-5 py-4 backdrop-blur-sm"
+            >
+              <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-academic text-white/45">
+                <Icon size={10} />
+                {label}
+              </p>
+              <p className="mt-1.5 font-serif text-2xl font-semibold">{value}</p>
+              <p className="mt-0.5 text-xs text-white/45">{sub}</p>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>
