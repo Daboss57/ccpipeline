@@ -1932,7 +1932,7 @@ function App() {
           <div className="mx-auto max-w-md">
             <div className="h-3 border-2 border-gold/40 bg-parchment relative overflow-hidden">
               <div className="absolute inset-0 h-full bg-gold animate-pulse opacity-70" style={{ width: '65%' }} />
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold-light/50 to-transparent animate-shimmer" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold-light/50 to-transparent" />
             </div>
           </div>
 
