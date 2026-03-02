@@ -1,20 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color: #1c1814;
-  background: radial-gradient(circle at 20% 20%, #fef3c7 0%, #f5f3ef 40%, #dbeafe 100%);
+  color: #0a1128;
+  background: #faf8f3;
+  /* Art Deco geometric pattern overlay */
+  background-image:
+    linear-gradient(rgba(61, 90, 128, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 90, 128, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 10% 20%, rgba(244, 161, 39, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(61, 90, 128, 0.06) 0%, transparent 50%);
+  background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Art Deco ornamental divider */
+.deco-divider {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #f4a127 20%, #f4a127 80%, transparent 100%);
+}
+
+.deco-divider::before,
+.deco-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #f4a127;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.deco-divider::before {
+  left: 10%;
+}
+
+.deco-divider::after {
+  right: 10%;
+}
+
+/* Geometric corner accents */
+.deco-corners {
+  position: relative;
+}
+
+.deco-corners::before,
+.deco-corners::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f4a127;
+}
+
+.deco-corners::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.deco-corners::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
 }
 
 @keyframes pulse {
@@ -35,6 +103,46 @@ body {
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .duration-700 {
   transition-duration: 700ms;
 }
@@ -48,5 +156,22 @@ body {
 }
 
 .shadow-orbital {
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(244, 161, 39, 0.2);
+}
+
+/* Blueprint-style animation */
+.blueprint-reveal {
+  animation: draw-line 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Geometric panel slide */
+.panel-slide {
+  animation: slide-in-right 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Subtle gold shimmer effect */
+.gold-shimmer {
+  background: linear-gradient(120deg, #f4a127 0%, #f9c74f 50%, #f4a127 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
 }

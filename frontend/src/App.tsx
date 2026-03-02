@@ -1278,24 +1278,46 @@ function App() {
 
   return (
     <>
-    <div className="sticky top-0 z-40 border-b border-stone-200 bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-brand">PathwayIQ</p>
-          <p className="text-sm font-semibold text-ink">College Pathway Platform</p>
+    {/* Art Deco Navigation Header */}
+    <div className="sticky top-0 z-40 bg-navy border-b-2 border-gold/30 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-gold rotate-45" />
+            <div className="w-1 h-1 bg-gold rotate-45" />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-gold font-semibold">PathwayIQ</p>
+            <p className="text-sm font-display italic text-white">College Pathway Platform</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-          <button className={`rounded-lg px-3 py-1.5 ${stage === 'landing' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`} onClick={() => setStage('landing')}>
+          <button
+            className={`px-4 py-2 uppercase tracking-wider font-semibold transition-all duration-300 ${
+              stage === 'landing'
+                ? 'bg-gold text-navy border-2 border-gold'
+                : 'bg-navy-light text-gold-light border-2 border-gold/30 hover:border-gold/60'
+            }`}
+            onClick={() => setStage('landing')}
+          >
             Home
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage !== 'landing' && stage !== 'plan' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+            className={`px-4 py-2 uppercase tracking-wider font-semibold transition-all duration-300 ${
+              stage !== 'landing' && stage !== 'plan'
+                ? 'bg-gold text-navy border-2 border-gold'
+                : 'bg-navy-light text-gold-light border-2 border-gold/30 hover:border-gold/60'
+            }`}
             onClick={() => setStage('intake')}
           >
             Planner
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            className={`px-4 py-2 uppercase tracking-wider font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${
+              stage === 'plan' && planWorkspaceTab === 'scenarios'
+                ? 'bg-gold text-navy border-2 border-gold'
+                : 'bg-navy-light text-gold-light border-2 border-gold/30 hover:border-gold/60'
+            }`}
             disabled={!plan}
             onClick={() => {
               if (!plan) return
@@ -1306,7 +1328,11 @@ function App() {
             Scenarios
           </button>
           <button
-            className={`rounded-lg px-3 py-1.5 ${stage === 'plan' && planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'} disabled:opacity-50`}
+            className={`px-4 py-2 uppercase tracking-wider font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed ${
+              stage === 'plan' && planWorkspaceTab === 'requirements'
+                ? 'bg-gold text-navy border-2 border-gold'
+                : 'bg-navy-light text-gold-light border-2 border-gold/30 hover:border-gold/60'
+            }`}
             disabled={!plan}
             onClick={() => {
               if (!plan) return
@@ -1318,30 +1344,56 @@ function App() {
           </button>
         </div>
       </div>
+      {/* Decorative gold line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
     </div>
 
     <main className="mx-auto max-w-7xl p-6 text-ink">
       {stage !== 'landing' && (
-      <header className="mb-8 rounded-3xl bg-panel/90 p-8 shadow-soft backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <header className="mb-8 relative bg-parchment border-2 border-gold/40 p-8 shadow-deco">
+        {/* Corner decorations */}
+        <div className="absolute -top-2 -left-2 w-12 h-12 border-t-2 border-l-2 border-gold pointer-events-none" />
+        <div className="absolute -top-2 -right-2 w-12 h-12 border-t-2 border-r-2 border-gold pointer-events-none" />
+        <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-2 border-l-2 border-gold pointer-events-none" />
+        <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-2 border-r-2 border-gold pointer-events-none" />
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-brand">PathwayIQ</p>
-            <h1 className="mt-2 text-4xl font-semibold">AI-Powered College Pathway Planner</h1>
-            <p className="mt-3 max-w-3xl text-sm text-stone-700">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-px w-8 bg-gold" />
+              <p className="text-xs uppercase tracking-[0.3em] text-slate font-semibold">PathwayIQ</p>
+              <div className="h-px w-8 bg-gold" />
+            </div>
+            <h1 className="font-display text-4xl font-semibold text-navy">AI-Powered College Pathway Planner</h1>
+            <p className="mt-3 max-w-3xl text-sm text-slate">
               PRD Flow: 5-step intake → credit resolution summary → full pathway timeline.
             </p>
           </div>
-          <button className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white" onClick={applyPrdExamplePreset}>
+          <button
+            className="px-6 py-3 bg-copper text-white uppercase tracking-wider text-sm font-semibold hover:bg-copper/90 transition-all duration-300 border-2 border-copper"
+            onClick={applyPrdExamplePreset}
+          >
             Load PRD Example
           </button>
         </div>
-        <p className="mt-4 text-sm font-medium text-accent">Status: {status}</p>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+        {/* Status bar with Art Deco styling */}
+        <div className="mt-6 pt-4 border-t-2 border-gold/20">
+          <p className="text-sm font-semibold text-gold-dark flex items-center gap-2">
+            <span className="w-2 h-2 bg-gold-dark rounded-full animate-pulse" />
+            Status: {status}
+          </p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
           {['intake', 'loading', 'credit', 'plan'].map((item) => (
             <span
               key={item}
-              className={`rounded-full px-3 py-1 ${stage === item ? 'bg-brand text-white' : 'bg-stone-200 text-stone-700'}`}
+              className={`px-4 py-2 text-xs uppercase tracking-wider font-semibold border-2 transition-all duration-300 ${
+                stage === item
+                  ? 'bg-gold text-navy border-gold'
+                  : 'bg-parchment text-slate border-slate/30'
+              }`}
             >
               {item === 'intake' ? 'Intake' : item === 'loading' ? 'Calculating' : item === 'credit' ? 'Credit Summary' : 'Full Plan'}
             </span>
@@ -1365,39 +1417,127 @@ function App() {
             }}
           />
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
-              <p className="text-xs uppercase tracking-[0.18em] text-brand">Readiness Intelligence</p>
-              <h3 className="mt-2 text-lg font-semibold">Score + Risk Forecast</h3>
-              <p className="mt-2 text-sm text-stone-600">See one readiness score per target school/major with blockers, overload, and timeline reasons.</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            <article className="group relative bg-white border-2 border-gold/30 p-6 shadow-deco hover:shadow-deco-lg transition-all duration-500">
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-gold" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-gold" />
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <p className="text-xs uppercase tracking-[0.25em] text-slate font-semibold">Readiness Intelligence</p>
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
+              <h3 className="font-display text-2xl font-semibold text-navy mb-3">Score + Risk Forecast</h3>
+              <p className="text-sm text-slate leading-relaxed">
+                See one readiness score per target school/major with blockers, overload, and timeline reasons.
+              </p>
+
+              {/* Decorative element */}
+              <div className="mt-4 pt-4 border-t border-gold/20 flex justify-center gap-2">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <div className="w-2 h-2 bg-gold rotate-45" />
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
             </article>
-            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
-              <p className="text-xs uppercase tracking-[0.18em] text-brand">Scenario Studio</p>
-              <h3 className="mt-2 text-lg font-semibold">What-if Diffing</h3>
-              <p className="mt-2 text-sm text-stone-600">Generate No AP/Fast/Light variants and compare added, removed, moved classes with metric deltas.</p>
+
+            <article className="group relative bg-white border-2 border-gold/30 p-6 shadow-deco hover:shadow-deco-lg transition-all duration-500">
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-gold" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-gold" />
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <p className="text-xs uppercase tracking-[0.25em] text-slate font-semibold">Scenario Studio</p>
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
+              <h3 className="font-display text-2xl font-semibold text-navy mb-3">What-if Diffing</h3>
+              <p className="text-sm text-slate leading-relaxed">
+                Generate No AP/Fast/Light variants and compare added, removed, moved classes with metric deltas.
+              </p>
+
+              {/* Decorative element */}
+              <div className="mt-4 pt-4 border-t border-gold/20 flex justify-center gap-2">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <div className="w-2 h-2 bg-gold rotate-45" />
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
             </article>
-            <article className="rounded-2xl border border-stone-200 bg-white p-5 shadow-soft">
-              <p className="text-xs uppercase tracking-[0.18em] text-brand">Requirement Clarity</p>
-              <h3 className="mt-2 text-lg font-semibold">Progress by Category</h3>
-              <p className="mt-2 text-sm text-stone-600">Track done, planned, and missing requirements in grouped chips instead of dense technical tables.</p>
+
+            <article className="group relative bg-white border-2 border-gold/30 p-6 shadow-deco hover:shadow-deco-lg transition-all duration-500">
+              {/* Corner accents */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-gold" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-gold" />
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <p className="text-xs uppercase tracking-[0.25em] text-slate font-semibold">Requirement Clarity</p>
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
+              <h3 className="font-display text-2xl font-semibold text-navy mb-3">Progress by Category</h3>
+              <p className="text-sm text-slate leading-relaxed">
+                Track done, planned, and missing requirements in grouped chips instead of dense technical tables.
+              </p>
+
+              {/* Decorative element */}
+              <div className="mt-4 pt-4 border-t border-gold/20 flex justify-center gap-2">
+                <div className="w-1 h-1 bg-gold rotate-45" />
+                <div className="w-2 h-2 bg-gold rotate-45" />
+                <div className="w-1 h-1 bg-gold rotate-45" />
+              </div>
             </article>
           </div>
 
-          <div className="rounded-2xl border border-stone-200 bg-white p-5">
-            <p className="text-sm font-semibold">How it works</p>
-            <div className="mt-3 grid gap-3 text-sm md:grid-cols-4">
-              <div className="rounded-lg bg-base p-3"><strong>1.</strong> Enter profile, target school, and major.</div>
-              <div className="rounded-lg bg-base p-3"><strong>2.</strong> Resolve AP/IB/CLEP and transfer credit.</div>
-              <div className="rounded-lg bg-base p-3"><strong>3.</strong> Generate optimized schedule and risk score.</div>
-              <div className="rounded-lg bg-base p-3"><strong>4.</strong> Compare scenarios and adjust before exporting.</div>
+          <div className="relative bg-white border-2 border-gold/30 p-6 shadow-deco">
+            {/* Corner decorations */}
+            <div className="absolute -top-2 -left-2 w-10 h-10 border-t-2 border-l-2 border-gold" />
+            <div className="absolute -top-2 -right-2 w-10 h-10 border-t-2 border-r-2 border-gold" />
+
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-px w-8 bg-gold" />
+                <p className="text-sm font-semibold uppercase tracking-wider text-slate">How it works</p>
+                <div className="flex-1 h-px bg-gold" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="bg-parchment border border-gold/20 p-4 text-sm">
+                <span className="font-display text-3xl font-semibold text-gold">1.</span>
+                <p className="mt-2 text-navy">Enter profile, target school, and major.</p>
+              </div>
+              <div className="bg-parchment border border-gold/20 p-4 text-sm">
+                <span className="font-display text-3xl font-semibold text-gold">2.</span>
+                <p className="mt-2 text-navy">Resolve AP/IB/CLEP and transfer credit.</p>
+              </div>
+              <div className="bg-parchment border border-gold/20 p-4 text-sm">
+                <span className="font-display text-3xl font-semibold text-gold">3.</span>
+                <p className="mt-2 text-navy">Generate optimized schedule and risk score.</p>
+              </div>
+              <div className="bg-parchment border border-gold/20 p-4 text-sm">
+                <span className="font-display text-3xl font-semibold text-gold">4.</span>
+                <p className="mt-2 text-navy">Compare scenarios and adjust before exporting.</p>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-stone-200 bg-white p-3 shadow-soft md:p-5">
-            <p className="px-2 text-xs uppercase tracking-[0.18em] text-brand">Pathway Milestones</p>
-            <h3 className="px-2 pt-2 text-xl font-semibold">Radial Orbital Timeline</h3>
-            <p className="px-2 pt-2 text-sm text-stone-600">Interactive + animated orbit showing the full journey from intake to admission readiness.</p>
-            <div className="mt-3 overflow-hidden rounded-2xl">
+          <div className="relative bg-white border-2 border-gold/30 p-6 md:p-8 shadow-deco">
+            {/* Corner decorations */}
+            <div className="absolute -top-2 -left-2 w-12 h-12 border-t-2 border-l-2 border-gold" />
+            <div className="absolute -top-2 -right-2 w-12 h-12 border-t-2 border-r-2 border-gold" />
+            <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-2 border-l-2 border-gold" />
+            <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-2 border-r-2 border-gold" />
+
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-px w-8 bg-gold" />
+              <p className="text-xs uppercase tracking-[0.3em] text-slate font-semibold">Pathway Milestones</p>
+              <div className="h-px w-8 bg-gold" />
+            </div>
+            <h3 className="font-display text-3xl font-semibold text-navy mb-2">Radial Orbital Timeline</h3>
+            <p className="text-sm text-slate mb-6">
+              Interactive + animated orbit showing the full journey from intake to admission readiness.
+            </p>
+            <div className="overflow-hidden">
               <RadialOrbitalTimeline timelineData={landingTimelineData} />
             </div>
           </div>
@@ -1405,46 +1545,100 @@ function App() {
       )}
 
       {stage === 'intake' && (
-        <section className="rounded-3xl bg-panel p-6 shadow-soft">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <section className="relative bg-white border-2 border-gold/40 p-8 shadow-deco">
+          {/* Corner decorations */}
+          <div className="absolute -top-2 -left-2 w-12 h-12 border-t-2 border-l-2 border-gold pointer-events-none" />
+          <div className="absolute -top-2 -right-2 w-12 h-12 border-t-2 border-r-2 border-gold pointer-events-none" />
+          <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-2 border-l-2 border-gold pointer-events-none" />
+          <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-2 border-r-2 border-gold pointer-events-none" />
+
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold">Step {currentStep} of 5 — {stepLabels[currentStep - 1]}</h2>
-              <p className="mt-1 text-sm text-stone-600">Complete this section, then continue to the next step.</p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-display text-4xl font-semibold text-gold">{currentStep}</span>
+                <div className="h-px w-8 bg-gold" />
+                <span className="text-xs uppercase tracking-[0.3em] text-slate font-semibold">of 5</span>
+              </div>
+              <h2 className="font-display text-3xl font-semibold text-navy">{stepLabels[currentStep - 1]}</h2>
+              <p className="mt-2 text-sm text-slate">Complete this section, then continue to the next step.</p>
             </div>
-            <div className="h-2 w-56 overflow-hidden rounded-full bg-stone-200">
-              <div className="h-full bg-brand" style={{ width: `${(currentStep / 5) * 100}%` }} />
+
+            {/* Geometric progress bar */}
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((step) => (
+                <div
+                  key={step}
+                  className={`w-10 h-10 flex items-center justify-center border-2 transition-all duration-300 ${
+                    currentStep >= step
+                      ? 'bg-gold border-gold text-navy'
+                      : 'bg-parchment border-slate/30 text-slate/50'
+                  }`}
+                >
+                  <span className="font-semibold text-sm">{step}</span>
+                </div>
+              ))}
             </div>
           </div>
 
+          <div className="h-px bg-gold/30 mb-6" />
+
           {currentStep === 1 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               <label className="text-sm">
-                Current grade level
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.grade} onChange={(event) => setFormState((state) => ({ ...state, grade: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Current grade level
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.grade}
+                  onChange={(event) => setFormState((state) => ({ ...state, grade: event.target.value }))}
+                >
                   {gradeOptions.map((grade) => (
                     <option key={grade} value={grade}>{grade}</option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                Enrollment status
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.enrollment} onChange={(event) => setFormState((state) => ({ ...state, enrollment: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Enrollment status
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.enrollment}
+                  onChange={(event) => setFormState((state) => ({ ...state, enrollment: event.target.value }))}
+                >
                   {enrollmentOptions.map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                Start term
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.startTerm} onChange={(event) => setFormState((state) => ({ ...state, startTerm: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Start term
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.startTerm}
+                  onChange={(event) => setFormState((state) => ({ ...state, startTerm: event.target.value }))}
+                >
                   {termOptions.map((term) => (
                     <option key={term} value={term}>{term}</option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                Target graduation term
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.gradTerm} onChange={(event) => setFormState((state) => ({ ...state, gradTerm: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Target graduation term
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.gradTerm}
+                  onChange={(event) => setFormState((state) => ({ ...state, gradTerm: event.target.value }))}
+                >
                   {termOptions.map((term) => (
                     <option key={term} value={term}>{term}</option>
                   ))}
@@ -1455,43 +1649,76 @@ function App() {
 
           {currentStep === 2 && (
             <div>
-              <h3 className="text-lg font-semibold">AP / IB / CLEP Credit Bank</h3>
-              <div className="mt-3 space-y-3">
+              <h3 className="font-display text-2xl font-semibold text-navy mb-4">AP / IB / CLEP Credit Bank</h3>
+              <div className="space-y-3">
                 {exams.map((exam) => (
-                  <div key={exam.id} className="grid gap-2 rounded-xl border border-stone-200 bg-white p-3 sm:grid-cols-5">
-                    <select className="rounded-lg border p-2" value={exam.exam_type} onChange={(event) => updateExam(exam.id, { exam_type: event.target.value as ExamInput['exam_type'] })}>
+                  <div key={exam.id} className="grid gap-3 border-2 border-gold/20 bg-parchment p-4 sm:grid-cols-5">
+                    <select
+                      className="border-2 border-slate/30 bg-white p-2 text-navy focus:border-gold focus:outline-none transition-colors"
+                      value={exam.exam_type}
+                      onChange={(event) => updateExam(exam.id, { exam_type: event.target.value as ExamInput['exam_type'] })}
+                    >
                       <option value="AP">AP</option>
                       <option value="IB">IB</option>
                       <option value="CLEP">CLEP</option>
                     </select>
-                    <select className="rounded-lg border p-2 sm:col-span-2" value={exam.exam_name} onChange={(event) => updateExam(exam.id, { exam_name: event.target.value })}>
+                    <select
+                      className="border-2 border-slate/30 bg-white p-2 text-navy sm:col-span-2 focus:border-gold focus:outline-none transition-colors"
+                      value={exam.exam_name}
+                      onChange={(event) => updateExam(exam.id, { exam_name: event.target.value })}
+                    >
                       {examCatalog[exam.exam_type].map((name) => (
                         <option key={name} value={name}>{name}</option>
                       ))}
                     </select>
-                    <select className="rounded-lg border p-2" value={exam.status} onChange={(event) => updateExam(exam.id, { status: event.target.value as ExamInput['status'] })}>
+                    <select
+                      className="border-2 border-slate/30 bg-white p-2 text-navy focus:border-gold focus:outline-none transition-colors"
+                      value={exam.status}
+                      onChange={(event) => updateExam(exam.id, { status: event.target.value as ExamInput['status'] })}
+                    >
                       <option value="earned">Score earned</option>
                       <option value="pending">Score pending</option>
                     </select>
                     <div className="flex gap-2">
-                      <input className="w-full rounded-lg border p-2" placeholder="Score" value={exam.score} disabled={exam.status === 'pending'} onChange={(event) => updateExam(exam.id, { score: event.target.value })} />
-                      <button className="rounded-lg bg-stone-100 px-3 text-sm" onClick={() => removeExam(exam.id)}>Remove</button>
+                      <input
+                        className="w-full border-2 border-slate/30 bg-white p-2 text-navy focus:border-gold focus:outline-none transition-colors disabled:opacity-50"
+                        placeholder="Score"
+                        value={exam.score}
+                        disabled={exam.status === 'pending'}
+                        onChange={(event) => updateExam(exam.id, { score: event.target.value })}
+                      />
+                      <button
+                        className="px-3 bg-copper text-white text-sm uppercase tracking-wider hover:bg-copper/90 transition-colors"
+                        onClick={() => removeExam(exam.id)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button className="mt-3 rounded-lg bg-stone-200 px-3 py-2 text-sm" onClick={addExam}>
-                Add Exam
+              <button
+                className="mt-4 px-6 py-3 border-2 border-gold/40 text-gold-dark uppercase tracking-wider text-sm font-semibold hover:bg-gold/10 transition-all duration-300"
+                onClick={addExam}
+              >
+                + Add Exam
               </button>
             </div>
           )}
 
           {currentStep === 3 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               <label className="text-sm sm:col-span-2">
-                Pathway option
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.pathway} onChange={(event) => setFormState((state) => ({ ...state, pathway: event.target.value as PathwayType }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Pathway option
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.pathway}
+                  onChange={(event) => setFormState((state) => ({ ...state, pathway: event.target.value as PathwayType }))}
+                >
                   {pathwayOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
@@ -1500,8 +1727,15 @@ function App() {
 
               {formState.pathway === 'cc_transfer' && (
                 <label className="text-sm sm:col-span-2">
-                  Community college for transfer path
-                  <select className="mt-1 w-full rounded-lg border p-2" value={formState.ccId} onChange={(event) => setFormState((state) => ({ ...state, ccId: event.target.value }))}>
+                  <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    Community college for transfer path
+                  </span>
+                  <select
+                    className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                    value={formState.ccId}
+                    onChange={(event) => setFormState((state) => ({ ...state, ccId: event.target.value }))}
+                  >
                     <option value="lpc">Las Positas College</option>
                     <option value="sjdc">San Joaquin Delta College</option>
                   </select>
@@ -1511,18 +1745,32 @@ function App() {
           )}
 
           {currentStep === 4 && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               <label className="text-sm">
-                Target university
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.schoolId} onChange={(event) => setFormState((state) => ({ ...state, schoolId: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Target university
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.schoolId}
+                  onChange={(event) => setFormState((state) => ({ ...state, schoolId: event.target.value }))}
+                >
                   {schools.map((school) => (
                     <option key={school.school_id} value={school.school_id}>{school.name}</option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                Target major
-                <select className="mt-1 w-full rounded-lg border p-2" value={formState.majorId} onChange={(event) => setFormState((state) => ({ ...state, majorId: event.target.value }))}>
+                <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  Target major
+                </span>
+                <select
+                  className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                  value={formState.majorId}
+                  onChange={(event) => setFormState((state) => ({ ...state, majorId: event.target.value }))}
+                >
                   {majors.map((major) => (
                     <option key={major.major_id} value={major.major_id}>{major.has_requirements ? '\u2713 ' : ''}{major.major_name}</option>
                   ))}
@@ -1532,35 +1780,63 @@ function App() {
           )}
 
           {currentStep === 5 && (
-            <div className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="text-sm">
-                  Max units (regular)
-                  <select className="mt-1 w-full rounded-lg border p-2" value={formState.maxUnitsRegular} onChange={(event) => setFormState((state) => ({ ...state, maxUnitsRegular: Number(event.target.value) }))}>
+                  <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold text-xs">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    Max units (regular)
+                  </span>
+                  <select
+                    className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                    value={formState.maxUnitsRegular}
+                    onChange={(event) => setFormState((state) => ({ ...state, maxUnitsRegular: Number(event.target.value) }))}
+                  >
                     {regularUnitOptions.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
                 </label>
                 <label className="text-sm">
-                  Max units (HS active)
-                  <select className="mt-1 w-full rounded-lg border p-2" value={formState.maxUnitsHs} onChange={(event) => setFormState((state) => ({ ...state, maxUnitsHs: Number(event.target.value) }))}>
+                  <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold text-xs">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    Max units (HS active)
+                  </span>
+                  <select
+                    className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                    value={formState.maxUnitsHs}
+                    onChange={(event) => setFormState((state) => ({ ...state, maxUnitsHs: Number(event.target.value) }))}
+                  >
                     {hsUnitOptions.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
                 </label>
                 <label className="text-sm">
-                  HS-active terms
-                  <select className="mt-1 w-full rounded-lg border p-2" value={formState.hsActiveTerms} onChange={(event) => setFormState((state) => ({ ...state, hsActiveTerms: Number(event.target.value) }))}>
+                  <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold text-xs">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    HS-active terms
+                  </span>
+                  <select
+                    className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                    value={formState.hsActiveTerms}
+                    onChange={(event) => setFormState((state) => ({ ...state, hsActiveTerms: Number(event.target.value) }))}
+                  >
                     {hsActiveTermOptions.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
                 </label>
                 <label className="text-sm">
-                  Planning priority
-                  <select className="mt-1 w-full rounded-lg border p-2" value={formState.priority} onChange={(event) => setFormState((state) => ({ ...state, priority: event.target.value as PriorityType }))}>
+                  <span className="flex items-center gap-2 mb-2 uppercase tracking-wider text-slate font-semibold text-xs">
+                    <div className="w-1 h-1 bg-gold rotate-45" />
+                    Planning priority
+                  </span>
+                  <select
+                    className="w-full border-2 border-slate/30 bg-parchment p-3 text-navy focus:border-gold focus:outline-none transition-colors"
+                    value={formState.priority}
+                    onChange={(event) => setFormState((state) => ({ ...state, priority: event.target.value as PriorityType }))}
+                  >
                     {priorityOptions.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
@@ -1568,15 +1844,26 @@ function App() {
                 </label>
               </div>
 
-              <div className="rounded-xl border border-stone-200 bg-white p-4">
-                <p className="text-sm font-medium">Blocked Terms</p>
-                <p className="text-xs text-stone-500">Select semesters to skip.</p>
-                <div className="mt-2 max-h-36 overflow-y-auto pr-1">
+              <div className="border-2 border-gold/30 bg-parchment p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-1 h-1 bg-gold rotate-45" />
+                  <p className="text-sm font-semibold uppercase tracking-wider text-navy">Blocked Terms</p>
+                </div>
+                <p className="text-xs text-slate mb-3">Select semesters to skip.</p>
+                <div className="max-h-36 overflow-y-auto pr-2">
                   <div className="grid gap-2 sm:grid-cols-3">
                     {termOptions.map((term) => (
-                      <label key={term} className="flex items-center gap-2 rounded-lg border border-stone-200 px-2 py-1 text-sm">
-                        <input type="checkbox" checked={formState.blockedTerms.includes(term)} onChange={() => toggleBlockedTerm(term)} />
-                        <span>{term}</span>
+                      <label
+                        key={term}
+                        className="flex items-center gap-2 border border-slate/20 bg-white px-3 py-2 text-sm cursor-pointer hover:border-gold/50 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formState.blockedTerms.includes(term)}
+                          onChange={() => toggleBlockedTerm(term)}
+                          className="accent-gold"
+                        />
+                        <span className="text-navy">{term}</span>
                       </label>
                     ))}
                   </div>
@@ -1585,17 +1872,27 @@ function App() {
             </div>
           )}
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button className="rounded-xl bg-stone-200 px-4 py-2 text-sm disabled:opacity-50" disabled={currentStep === 1} onClick={goPreviousStep}>
+          <div className="mt-8 pt-6 border-t-2 border-gold/30 flex flex-wrap items-center gap-4">
+            <button
+              className="px-6 py-3 border-2 border-slate/30 text-slate uppercase tracking-wider text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate/5 transition-all duration-300"
+              disabled={currentStep === 1}
+              onClick={goPreviousStep}
+            >
               Back
             </button>
 
             {currentStep < 5 ? (
-              <button className="rounded-xl bg-brand px-4 py-2 text-sm text-white" onClick={goNextStep}>
+              <button
+                className="px-8 py-3 bg-gold text-navy border-2 border-gold uppercase tracking-wider text-sm font-semibold hover:bg-gold-light transition-all duration-300"
+                onClick={goNextStep}
+              >
                 Continue
               </button>
             ) : (
-              <button className="rounded-xl bg-brand px-5 py-2 text-sm font-medium text-white" onClick={() => void runPlanner()}>
+              <button
+                className="px-8 py-3 bg-gold text-navy border-2 border-gold uppercase tracking-wider text-sm font-semibold hover:bg-gold-light transition-all duration-300"
+                onClick={() => void runPlanner()}
+              >
                 Build My Plan
               </button>
             )}
@@ -1604,12 +1901,48 @@ function App() {
       )}
 
       {stage === 'loading' && (
-        <section className="rounded-3xl bg-panel p-12 text-center shadow-soft">
-          <h2 className="text-2xl font-semibold">Calculating your pathway...</h2>
-          <p className="mt-2 text-sm text-stone-600">Resolving credit policies, prerequisites, and term-by-term sequencing.</p>
-          <p className="mt-2 text-sm font-medium text-brand">{loadingDetails}</p>
-          <div className="mx-auto mt-6 h-2 max-w-md overflow-hidden rounded-full bg-stone-200">
-            <div className="h-full w-2/3 animate-pulse bg-brand" />
+        <section className="relative bg-white border-2 border-gold/40 p-16 text-center shadow-deco">
+          {/* Corner decorations */}
+          <div className="absolute -top-2 -left-2 w-16 h-16 border-t-2 border-l-2 border-gold pointer-events-none" />
+          <div className="absolute -top-2 -right-2 w-16 h-16 border-t-2 border-r-2 border-gold pointer-events-none" />
+          <div className="absolute -bottom-2 -left-2 w-16 h-16 border-b-2 border-l-2 border-gold pointer-events-none" />
+          <div className="absolute -bottom-2 -right-2 w-16 h-16 border-b-2 border-r-2 border-gold pointer-events-none" />
+
+          {/* Animated geometric spinner */}
+          <div className="flex justify-center mb-8">
+            <div className="relative w-24 h-24">
+              <div className="absolute inset-0 border-2 border-gold/30 animate-spin" style={{ animationDuration: '3s' }} />
+              <div className="absolute inset-2 border-2 border-gold/50 rotate-45 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
+              <div className="absolute inset-4 bg-gold rotate-45" />
+            </div>
+          </div>
+
+          <div className="mb-3 flex items-center justify-center gap-3">
+            <div className="h-px w-12 bg-gold" />
+            <h2 className="font-display text-4xl font-semibold text-navy">Calculating your pathway</h2>
+            <div className="h-px w-12 bg-gold" />
+          </div>
+
+          <p className="text-sm text-slate mb-2">
+            Resolving credit policies, prerequisites, and term-by-term sequencing.
+          </p>
+          <p className="text-sm font-semibold text-gold-dark mb-8">{loadingDetails}</p>
+
+          {/* Geometric progress bar */}
+          <div className="mx-auto max-w-md">
+            <div className="h-3 border-2 border-gold/40 bg-parchment relative overflow-hidden">
+              <div className="absolute inset-0 h-full bg-gold animate-pulse opacity-70" style={{ width: '65%' }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold-light/50 to-transparent animate-shimmer" />
+            </div>
+          </div>
+
+          {/* Decorative ornament */}
+          <div className="mt-8 flex justify-center gap-2">
+            <div className="w-1 h-1 bg-gold rotate-45" />
+            <div className="w-2 h-2 bg-gold rotate-45" />
+            <div className="w-3 h-3 bg-gold rotate-45" />
+            <div className="w-2 h-2 bg-gold rotate-45" />
+            <div className="w-1 h-1 bg-gold rotate-45" />
           </div>
         </section>
       )}
