@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 import {
   type CreditResolutionResponse,
@@ -1013,6 +1014,7 @@ function App() {
   ]
 
   return (
+    <>
     <main className="mx-auto max-w-7xl p-6 text-ink">
       <header className="mb-8 rounded-3xl bg-panel/90 p-8 shadow-soft backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1992,6 +1994,8 @@ function App() {
         </section>
       )}
     </main>
+    <SpeedInsights />
+    </>
   )
 }
 
