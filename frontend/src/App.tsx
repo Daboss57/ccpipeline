@@ -35,6 +35,27 @@ type ExamInput = {
 type PathwayType = 'direct_4yr' | 'cc_transfer' | 'cc_only'
 type PriorityType = 'fast' | 'balanced' | 'cost'
 type Stage = 'intake' | 'loading' | 'credit' | 'plan'
+type PlanWorkspaceTab = 'overview' | 'scenarios' | 'requirements' | 'adjust' | 'evidence'
+
+type ScenarioSnapshot = {
+  id: string
+  name: string
+  createdAt: string
+  plan: PlanResult
+}
+
+type RequirementStatus = 'done' | 'planned' | 'missing'
+
+type RequirementProgressItem = {
+  label: string
+  status: RequirementStatus
+  detail?: string
+}
+
+type RequirementProgressGroup = {
+  title: string
+  items: RequirementProgressItem[]
+}
 
 type FormState = {
   grade: string
@@ -213,10 +234,6 @@ function decodeState(value: string | null): FormState | null {
   }
 }
 
-function formatRequirementLabel(courseName: string): string {
-  return courseName
-}
-
 function App() {
   const [schools, setSchools] = useState<School[]>([])
   const [majors, setMajors] = useState<Major[]>([])
@@ -247,6 +264,15 @@ function App() {
   const [swapToCourseId, setSwapToCourseId] = useState('')
   const [status, setStatus] = useState('Load metadata to begin.')
   const [loadingDetails, setLoadingDetails] = useState('Preparing request...')
+  const [planWorkspaceTab, setPlanWorkspaceTab] = useState<PlanWorkspaceTab>('overview')
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
+  const [savedScenarios, setSavedScenarios] = useState<ScenarioSnapshot[]>([])
+  const [compareLeftScenarioId, setCompareLeftScenarioId] = useState('')
+  const [compareRightScenarioId, setCompareRightScenarioId] = useState('')
+  const [isScenarioRunning, setIsScenarioRunning] = useState(false)
+  const [scenarioRunLabel, setScenarioRunLabel] = useState('')
+  const [tourVisible, setTourVisible] = useState(false)
+  const [tourStep, setTourStep] = useState(0)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -353,6 +379,19 @@ function App() {
     }
   }, [stage])
 
+  useEffect(() => {
+    if (stage !== 'plan') {
+      return
+    }
+
+    const completed = window.localStorage.getItem('pathwayiq-tour-complete-v1') === '1'
+    if (!completed) {
+      setTourVisible(true)
+      setTourStep(0)
+      setPlanWorkspaceTab('overview')
+    }
+  }, [stage])
+
   const selectedSchool = useMemo(
     () => schools.find((school) => school.school_id === formState.schoolId),
     [schools, formState.schoolId],
@@ -389,6 +428,174 @@ function App() {
       })),
     )
   }, [plan])
+
+  const requirementProgressGroups = useMemo<RequirementProgressGroup[]>(() => {
+    if (!plan) {
+      return []
+    }
+
+    const plannedCourseIds = new Set(allPlannedCourses.map((course) => course.course_id))
+    const missingCourseIds = new Set(validation?.missing_requirements ?? [])
+
+    const majorPlanned: RequirementProgressItem[] = allPlannedCourses
+      .filter((course) => /-REQ-\d+$/.test(course.requirement_id))
+      .map((course) => ({
+        label: course.course_name,
+        status: 'planned',
+        detail: `${course.course_id} • ${course.term_label}`,
+      }))
+
+    const majorMissing: RequirementProgressItem[] = Array.from(missingCourseIds).map((courseId) => ({
+      label: courseId,
+      status: 'missing',
+      detail: 'Not currently scheduled',
+    }))
+
+    const generalEdPlanned: RequirementProgressItem[] = allPlannedCourses
+      .filter((course) => course.requirement_id.startsWith('GEN-'))
+      .map((course) => ({
+        label: course.course_name,
+        status: 'planned',
+        detail: `${course.course_id} • ${course.term_label}`,
+      }))
+
+    const igetcItems: RequirementProgressItem[] = (igetcTracker?.areas ?? []).map((area) => ({
+      label: `IGETC Area ${area.area}: ${igetcAreaLabels[area.area] ?? 'General Education Area'}`,
+      status: area.status === 'satisfied' ? 'done' : area.status === 'planned' ? 'planned' : 'missing',
+      detail: area.course_id ?? (area.status === 'missing' ? 'No course assigned' : undefined),
+    }))
+
+    const waivedByCredit: RequirementProgressItem[] = (resolvedMap?.satisfied_courses ?? [])
+      .filter((courseId) => !plannedCourseIds.has(courseId))
+      .map((courseId) => ({
+        label: courseId,
+        status: 'done',
+        detail: 'Satisfied by incoming credit',
+      }))
+
+    const groups: RequirementProgressGroup[] = [
+      { title: 'Major Requirements', items: [...majorPlanned, ...majorMissing] },
+      { title: 'General Education', items: generalEdPlanned },
+      { title: 'IGETC Areas', items: igetcItems },
+      { title: 'Waived by Credit', items: waivedByCredit },
+    ]
+
+    return groups.filter((group) => group.items.length > 0)
+  }, [allPlannedCourses, igetcTracker, plan, resolvedMap, validation?.missing_requirements])
+
+  const guidedNarrative = useMemo(() => {
+    if (!plan) {
+      return null
+    }
+
+    const doneCount = requirementProgressGroups
+      .flatMap((group) => group.items)
+      .filter((item) => item.status === 'done').length
+    const plannedCount = requirementProgressGroups
+      .flatMap((group) => group.items)
+      .filter((item) => item.status === 'planned').length
+    const missingCount = requirementProgressGroups
+      .flatMap((group) => group.items)
+      .filter((item) => item.status === 'missing').length
+
+    const whatsDone = [
+      `${plan.admission_checklist.major_prep_coverage_pct}% major prep coverage`,
+      `${plan.admission_checklist.transferable_units} transferable units`,
+      `${doneCount} completed requirements and ${plannedCount} planned requirements`,
+    ]
+
+    const whatsLeft = [
+      ...plan.admission_checklist.missing_blockers,
+      ...(validation?.missing_requirements ?? []).map((courseId) => `${courseId} still missing in current horizon`),
+    ]
+
+    let nextAction = 'Review the Adjust tab and rebalance terms to clear remaining blockers.'
+    if (!whatsLeft.length) {
+      nextAction = 'Export and share this plan. You are on-track with current assumptions.'
+    } else if ((validation?.issues ?? []).some((issue) => issue.code === 'UNIT_OVERLOAD')) {
+      nextAction = 'Open Adjust tab and move one course from overloaded terms first.'
+    } else if ((validation?.issues ?? []).some((issue) => issue.code === 'PREREQ_VIOLATION')) {
+      nextAction = 'Open Adjust tab and move prerequisite courses earlier before dependent courses.'
+    }
+
+    return {
+      done: whatsDone,
+      left: whatsLeft.length ? whatsLeft : ['No blockers currently detected.'],
+      nextAction,
+      missingCount,
+    }
+  }, [plan, requirementProgressGroups, validation])
+
+  const compareLeftScenario = savedScenarios.find((scenario) => scenario.id === compareLeftScenarioId)
+  const compareRightScenario = savedScenarios.find((scenario) => scenario.id === compareRightScenarioId)
+
+  const scenarioDiff = useMemo(() => {
+    if (!compareLeftScenario || !compareRightScenario) {
+      return null
+    }
+
+    const flattenPlan = (scenarioPlan: PlanResult) =>
+      scenarioPlan.terms.flatMap((term) =>
+        term.courses.map((course) => ({
+          course_id: course.course_id,
+          course_name: course.course_name,
+          term_id: term.term_id,
+          term_label: term.term_label,
+          units: course.units,
+        })),
+      )
+
+    const leftCourses = flattenPlan(compareLeftScenario.plan)
+    const rightCourses = flattenPlan(compareRightScenario.plan)
+
+    const leftById = new Map(leftCourses.map((course) => [course.course_id, course]))
+    const rightById = new Map(rightCourses.map((course) => [course.course_id, course]))
+
+    const addedInRight = rightCourses.filter((course) => !leftById.has(course.course_id))
+    const removedInRight = leftCourses.filter((course) => !rightById.has(course.course_id))
+    const movedInRight = rightCourses
+      .filter((course) => leftById.has(course.course_id))
+      .filter((course) => {
+        const left = leftById.get(course.course_id)
+        return left?.term_id !== course.term_id
+      })
+      .map((course) => {
+        const left = leftById.get(course.course_id)
+        return {
+          course_id: course.course_id,
+          course_name: course.course_name,
+          from_term: left?.term_label ?? 'Unknown term',
+          to_term: course.term_label,
+        }
+      })
+
+    const coverageDelta =
+      compareRightScenario.plan.admission_checklist.major_prep_coverage_pct -
+      compareLeftScenario.plan.admission_checklist.major_prep_coverage_pct
+    const unitsDelta =
+      compareRightScenario.plan.admission_checklist.transferable_units -
+      compareLeftScenario.plan.admission_checklist.transferable_units
+    const blockerDelta =
+      compareRightScenario.plan.admission_checklist.missing_blockers.length -
+      compareLeftScenario.plan.admission_checklist.missing_blockers.length
+
+    const leftBlockers = new Set(compareLeftScenario.plan.admission_checklist.missing_blockers)
+    const rightBlockers = new Set(compareRightScenario.plan.admission_checklist.missing_blockers)
+
+    const blockersAddedInRight = Array.from(rightBlockers).filter((item) => !leftBlockers.has(item))
+    const blockersRemovedInRight = Array.from(leftBlockers).filter((item) => !rightBlockers.has(item))
+
+    return {
+      addedInRight,
+      removedInRight,
+      movedInRight,
+      coverageDelta,
+      unitsDelta,
+      blockerDelta,
+      blockersAddedInRight,
+      blockersRemovedInRight,
+    }
+  }, [compareLeftScenario, compareRightScenario])
 
   const termIds = plan ? plan.terms.map((term) => term.term_id) : []
 
@@ -575,6 +782,139 @@ function App() {
     setStatus(rebuilt.diff_summary.join(' | ') || 'Move attempt completed.')
   }
 
+  function saveScenarioSnapshot(name?: string, scenarioPlan?: PlanResult) {
+    const planToSave = scenarioPlan ?? plan
+    if (!planToSave) {
+      return
+    }
+
+    const scenarioId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const scenarioName = name?.trim() || `Scenario ${savedScenarios.length + 1}`
+    const snapshot: ScenarioSnapshot = {
+      id: scenarioId,
+      name: scenarioName,
+      createdAt: new Date().toISOString(),
+      plan: planToSave,
+    }
+
+    setSavedScenarios((items) => {
+      const nextItems = [snapshot, ...items].slice(0, 8)
+      if (!compareLeftScenarioId) {
+        setCompareLeftScenarioId(snapshot.id)
+      } else if (!compareRightScenarioId) {
+        setCompareRightScenarioId(snapshot.id)
+      }
+      return nextItems
+    })
+  }
+
+  function loadScenario(scenarioId: string) {
+    const scenario = savedScenarios.find((item) => item.id === scenarioId)
+    if (!scenario) {
+      return
+    }
+    setPlan(scenario.plan)
+    setStatus(`Loaded scenario: ${scenario.name}`)
+  }
+
+  function unlockScenarioButtons() {
+    setIsScenarioRunning(false)
+    setScenarioRunLabel('')
+    setStatus('Scenario actions unlocked. You can run another one now.')
+  }
+
+  function closeTour() {
+    setTourVisible(false)
+    window.localStorage.setItem('pathwayiq-tour-complete-v1', '1')
+  }
+
+  function nextTourStep() {
+    setTourStep((current) => {
+      const next = current + 1
+      if (next === 1) {
+        setPlanWorkspaceTab('scenarios')
+      } else if (next === 2) {
+        setPlanWorkspaceTab('requirements')
+      } else if (next === 3) {
+        setPlanWorkspaceTab('adjust')
+      } else if (next > 3) {
+        closeTour()
+        return current
+      }
+      return next
+    })
+  }
+
+  async function buildScenario(kind: 'no-ap' | 'fast-track' | 'light-load') {
+    if (!originalRequest || !plan) {
+      return
+    }
+
+    setIsScenarioRunning(true)
+  setScenarioRunLabel(kind === 'no-ap' ? 'No AP' : kind === 'fast-track' ? 'Fast Track' : 'Light Load')
+  setStatus('Building scenario... this can take up to 20 seconds.')
+
+    try {
+      const requestPayload = JSON.parse(JSON.stringify(originalRequest)) as {
+        exam_credits?: Array<{ exam_type: string; exam_name: string; score: number | null; status: string | null }>
+        planning_constraints?: {
+          max_units_regular?: number
+          max_units_hs_active?: number
+          blocked_terms?: string[]
+          priority?: 'fast' | 'balanced' | 'cost'
+        }
+      }
+
+      if (!requestPayload.planning_constraints) {
+        requestPayload.planning_constraints = {}
+      }
+
+      if (kind === 'no-ap') {
+        requestPayload.exam_credits = (requestPayload.exam_credits ?? []).filter((exam) => exam.exam_type !== 'AP')
+      }
+
+      if (kind === 'fast-track') {
+        requestPayload.planning_constraints.priority = 'fast'
+        requestPayload.planning_constraints.max_units_regular = Math.max(
+          requestPayload.planning_constraints.max_units_regular ?? formState.maxUnitsRegular,
+          20,
+        )
+      }
+
+      if (kind === 'light-load') {
+        requestPayload.planning_constraints.priority = 'balanced'
+        requestPayload.planning_constraints.max_units_regular = 12
+        requestPayload.planning_constraints.max_units_hs_active = 3
+      }
+
+      const generated = (await Promise.race([
+        generatePlan(requestPayload),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error('Scenario generation timed out.')), 20000)
+        }),
+      ])) as { plan: PlanResult; validation: ValidationReport }
+
+      saveScenarioSnapshot(kind === 'no-ap' ? 'No AP' : kind === 'fast-track' ? 'Fast Track' : 'Light Load', generated.plan)
+
+      if (savedScenarios.length === 0) {
+        saveScenarioSnapshot('Baseline', plan)
+      }
+
+      setStatus(
+        kind === 'no-ap'
+          ? 'Generated No AP scenario.'
+          : kind === 'fast-track'
+            ? 'Generated Fast Track scenario.'
+            : 'Generated Light Load scenario.',
+      )
+    } catch {
+      setStatus('Scenario generation failed or timed out. Use Unlock if buttons remain disabled.')
+    } finally {
+      setIsScenarioRunning(false)
+      setScenarioRunLabel('')
+    }
+  }
+
   async function loadArticulationSwapOptions(selectedCourseId: string) {
     if (!plan || !selectedCourseId || formState.pathway !== 'cc_transfer' || !formState.ccId) {
       setSwapOptions([])
@@ -648,6 +988,29 @@ function App() {
   function goPreviousStep() {
     setCurrentStep((step) => Math.max(1, step - 1))
   }
+
+  const tourSteps = [
+    {
+      title: 'Welcome to Plan Workspace',
+      body: 'Start in Overview for your progress summary and timeline. Then use the other tabs to make decisions.',
+      tab: 'overview' as PlanWorkspaceTab,
+    },
+    {
+      title: 'Run What-if Scenarios',
+      body: 'Open Scenarios to generate No AP, Fast Track, and Light Load versions. Compare two options side-by-side.',
+      tab: 'scenarios' as PlanWorkspaceTab,
+    },
+    {
+      title: 'Check Requirement Status',
+      body: 'Use Requirements to see what is done, planned, and missing in grouped checklists.',
+      tab: 'requirements' as PlanWorkspaceTab,
+    },
+    {
+      title: 'Fine-tune the Schedule',
+      body: 'Go to Adjust to move courses and rebuild the schedule safely.',
+      tab: 'adjust' as PlanWorkspaceTab,
+    },
+  ]
 
   return (
     <main className="mx-auto max-w-7xl p-6 text-ink">
@@ -970,7 +1333,13 @@ function App() {
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="rounded-xl bg-brand px-4 py-2 text-sm text-white" onClick={() => setStage('plan')}>
+              <button
+                className="rounded-xl bg-brand px-4 py-2 text-sm text-white"
+                onClick={() => {
+                  setPlanWorkspaceTab('overview')
+                  setStage('plan')
+                }}
+              >
                 Continue to Full Plan
               </button>
               <button className="rounded-xl bg-stone-200 px-4 py-2 text-sm" onClick={startOver}>
@@ -982,7 +1351,7 @@ function App() {
       )}
 
       {stage === 'plan' && (
-        <section className="space-y-6">
+        <section className="space-y-6 pb-28 md:pb-0">
           <div className="rounded-3xl bg-panel p-6 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -991,7 +1360,7 @@ function App() {
                   School: {selectedSchool?.name ?? formState.schoolId} • Term system: {selectedSchool?.term_system ?? 'unknown'}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="hidden gap-2 sm:flex">
                 <button className="rounded-xl bg-accent px-4 py-2 text-sm text-white disabled:opacity-50" disabled={!pendingScenarios.length || !plan} onClick={() => void runWithoutPendingCredit()}>
                   Toggle Without Pending Credit
                 </button>
@@ -1017,28 +1386,308 @@ function App() {
                   )}
                 </div>
 
-                <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-                  {plan.terms.map((term) => (
-                    <article key={term.term_id} className="min-w-72 rounded-2xl border border-stone-200 bg-white p-4">
-                      <p className="text-sm font-semibold">{term.term_label}</p>
-                      <p className="text-xs text-stone-500">
-                        {term.term_id} • {term.units} units {term.hs_active ? '• HS active cap' : ''}
-                      </p>
-                      <ul className="mt-3 space-y-2 text-sm">
-                        {term.courses.map((course) => (
-                          <li key={`${term.term_id}-${course.course_id}`} className="rounded-lg bg-base p-2">
-                            <span className="font-semibold">{course.course_id}</span> {course.course_name}
-                          </li>
-                        ))}
-                        {!term.courses.length && <li className="text-stone-500">No courses</li>}
-                      </ul>
-                      {term.notes.map((note) => (
-                        <p key={`${term.term_id}-${note}`} className="mt-2 text-xs text-amber-700">{note}</p>
-                      ))}
-                    </article>
-                  ))}
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    title="Summary, timeline, and next action"
+                    className={`rounded-xl px-4 py-2 text-sm ${planWorkspaceTab === 'overview' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                    onClick={() => setPlanWorkspaceTab('overview')}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    title="Generate and compare what-if scenarios"
+                    className={`rounded-xl px-4 py-2 text-sm ${planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                    onClick={() => setPlanWorkspaceTab('scenarios')}
+                  >
+                    Scenarios
+                  </button>
+                  <button
+                    title="Track requirements by done, planned, and missing"
+                    className={`rounded-xl px-4 py-2 text-sm ${planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                    onClick={() => setPlanWorkspaceTab('requirements')}
+                  >
+                    Requirements
+                  </button>
+                  <button
+                    title="Rebuild schedule with manual changes"
+                    className={`rounded-xl px-4 py-2 text-sm ${planWorkspaceTab === 'adjust' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                    onClick={() => setPlanWorkspaceTab('adjust')}
+                  >
+                    Adjust
+                  </button>
+                  <button
+                    title="Evidence and policy sources used by planner"
+                    className={`rounded-xl px-4 py-2 text-sm ${planWorkspaceTab === 'evidence' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                    onClick={() => setPlanWorkspaceTab('evidence')}
+                  >
+                    Evidence
+                  </button>
+                  <button
+                    className="ml-auto rounded-xl bg-stone-100 px-3 py-2 text-xs text-stone-700"
+                    onClick={() => setShowTechnicalDetails((value) => !value)}
+                  >
+                    {showTechnicalDetails ? 'Hide technical details' : 'Show technical details'}
+                  </button>
                 </div>
 
+                {tourVisible && tourSteps[tourStep] && (
+                  <div className="mt-3 rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold">{tourSteps[tourStep].title}</p>
+                        <p className="mt-1 text-stone-700">{tourSteps[tourStep].body}</p>
+                        <p className="mt-1 text-xs text-stone-500">Step {tourStep + 1} of {tourSteps.length}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="rounded-lg bg-stone-200 px-3 py-1.5 text-xs" onClick={closeTour}>
+                          Skip tour
+                        </button>
+                        <button className="rounded-lg bg-brand px-3 py-1.5 text-xs text-white" onClick={nextTourStep}>
+                          {tourStep + 1 === tourSteps.length ? 'Finish' : 'Next'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {planWorkspaceTab === 'overview' && (
+                <div className="mt-4 space-y-4">
+                  {guidedNarrative && (
+                    <div className="rounded-xl border border-stone-200 bg-white p-4">
+                      <h3 className="font-semibold">Guided Plan Workspace</h3>
+                      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                        <div className="rounded-lg bg-base p-3 text-sm">
+                          <p className="font-medium">What’s done</p>
+                          <ul className="mt-2 space-y-1 text-stone-700">
+                            {guidedNarrative.done.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg bg-base p-3 text-sm">
+                          <p className="font-medium">What’s left</p>
+                          <ul className="mt-2 space-y-1 text-stone-700">
+                            {guidedNarrative.left.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg bg-base p-3 text-sm">
+                          <p className="font-medium">Next best action</p>
+                          <p className="mt-2 text-stone-700">{guidedNarrative.nextAction}</p>
+                          <p className="mt-3 text-xs text-stone-500">Missing requirements in current horizon: {guidedNarrative.missingCount}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm">
+                    <p className="font-semibold">Quick Guide</p>
+                    <ul className="mt-2 space-y-1 text-stone-700">
+                      <li>• Use <strong>Scenarios</strong> to generate what-if plans like No AP, Fast Track, and Light Load.</li>
+                      <li>• Use <strong>Requirements</strong> to see done, planned, and missing requirements grouped by category.</li>
+                      <li>• Use <strong>Adjust</strong> to manually move courses and rebuild.</li>
+                    </ul>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 md:flex md:gap-3 md:overflow-x-auto md:pb-2">
+                    {plan.terms.map((term) => (
+                      <article key={term.term_id} className="rounded-2xl border border-stone-200 bg-white p-4 md:min-w-72">
+                        <p className="text-sm font-semibold">{term.term_label}</p>
+                        <p className="text-xs text-stone-500">
+                          {term.term_id} • {term.units} units {term.hs_active ? '• HS active cap' : ''}
+                        </p>
+                        <ul className="mt-3 space-y-2 text-sm">
+                          {term.courses.map((course) => (
+                            <li key={`${term.term_id}-${course.course_id}`} className="rounded-lg bg-base p-2">
+                              <span className="font-semibold">{course.course_id}</span> {course.course_name}
+                            </li>
+                          ))}
+                          {!term.courses.length && <li className="text-stone-500">No courses</li>}
+                        </ul>
+                        {term.notes.map((note) => (
+                          <p key={`${term.term_id}-${note}`} className="mt-2 text-xs text-amber-700">{note}</p>
+                        ))}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                )}
+
+                {planWorkspaceTab === 'scenarios' && (
+                <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-semibold">Scenario Planner</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <button className="rounded-lg bg-stone-200 px-3 py-2 text-xs" title="Save current plan as a compare snapshot" onClick={() => saveScenarioSnapshot('Current Plan')}>
+                        Save Current
+                      </button>
+                      <button className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50" title="Remove AP exams from inputs and regenerate" disabled={isScenarioRunning} onClick={() => void buildScenario('no-ap')}>
+                        No AP
+                      </button>
+                      <button className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50" title="Increase speed and unit cap" disabled={isScenarioRunning} onClick={() => void buildScenario('fast-track')}>
+                        Fast Track
+                      </button>
+                      <button className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50" title="Reduce term load for easier pacing" disabled={isScenarioRunning} onClick={() => void buildScenario('light-load')}>
+                        Light Load
+                      </button>
+                      <button className="rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-800" title="Force unlock buttons if a request hangs" onClick={unlockScenarioButtons}>
+                        Unlock
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-xs text-stone-600">Tip: Run one scenario, then compare it against baseline using the selectors below.</p>
+                  {isScenarioRunning && <p className="mt-2 text-xs text-amber-700">Running scenario: {scenarioRunLabel}...</p>}
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-3">
+                    <select className="rounded-lg border p-2 text-sm" title="Choose left side scenario" value={compareLeftScenarioId} onChange={(event) => setCompareLeftScenarioId(event.target.value)}>
+                      <option value="">Left scenario</option>
+                      {savedScenarios.map((scenario) => (
+                        <option key={`left-${scenario.id}`} value={scenario.id}>
+                          {scenario.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select className="rounded-lg border p-2 text-sm" title="Choose right side scenario" value={compareRightScenarioId} onChange={(event) => setCompareRightScenarioId(event.target.value)}>
+                      <option value="">Right scenario</option>
+                      {savedScenarios.map((scenario) => (
+                        <option key={`right-${scenario.id}`} value={scenario.id}>
+                          {scenario.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select className="rounded-lg border p-2 text-sm" title="Load a saved scenario into the main planner" onChange={(event) => loadScenario(event.target.value)} defaultValue="">
+                      <option value="">Load scenario into planner</option>
+                      {savedScenarios.map((scenario) => (
+                        <option key={`load-${scenario.id}`} value={scenario.id}>
+                          {scenario.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {compareLeftScenario && compareRightScenario && (
+                    <div className="mt-4 space-y-3">
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        <div className="rounded-lg border border-stone-200 p-3 text-sm">
+                          <p className="font-medium">{compareLeftScenario.name}</p>
+                          <p className="mt-1 text-stone-700">Coverage: {compareLeftScenario.plan.admission_checklist.major_prep_coverage_pct}%</p>
+                          <p className="text-stone-700">Units: {compareLeftScenario.plan.admission_checklist.transferable_units}</p>
+                          <p className="text-stone-700">Blockers: {compareLeftScenario.plan.admission_checklist.missing_blockers.length}</p>
+                          <p className="text-stone-700">Terms used: {compareLeftScenario.plan.terms.filter((term) => term.courses.length > 0).length}</p>
+                        </div>
+                        <div className="rounded-lg border border-stone-200 p-3 text-sm">
+                          <p className="font-medium">{compareRightScenario.name}</p>
+                          <p className="mt-1 text-stone-700">Coverage: {compareRightScenario.plan.admission_checklist.major_prep_coverage_pct}%</p>
+                          <p className="text-stone-700">Units: {compareRightScenario.plan.admission_checklist.transferable_units}</p>
+                          <p className="text-stone-700">Blockers: {compareRightScenario.plan.admission_checklist.missing_blockers.length}</p>
+                          <p className="text-stone-700">Terms used: {compareRightScenario.plan.terms.filter((term) => term.courses.length > 0).length}</p>
+                        </div>
+                      </div>
+
+                      {scenarioDiff && (
+                        <div className="rounded-lg border border-stone-200 p-3 text-sm">
+                          <p className="font-medium">Diff ({compareLeftScenario.name} → {compareRightScenario.name})</p>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                            <p className="rounded-md bg-base p-2">Coverage delta: {scenarioDiff.coverageDelta >= 0 ? '+' : ''}{scenarioDiff.coverageDelta}%</p>
+                            <p className="rounded-md bg-base p-2">Units delta: {scenarioDiff.unitsDelta >= 0 ? '+' : ''}{scenarioDiff.unitsDelta}</p>
+                            <p className="rounded-md bg-base p-2">Blockers delta: {scenarioDiff.blockerDelta >= 0 ? '+' : ''}{scenarioDiff.blockerDelta}</p>
+                          </div>
+
+                          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                            <div>
+                              <p className="font-medium text-emerald-700">Added in right ({scenarioDiff.addedInRight.length})</p>
+                              <ul className="mt-1 max-h-40 space-y-1 overflow-auto text-xs text-stone-700">
+                                {scenarioDiff.addedInRight.map((item) => (
+                                  <li key={`added-${item.course_id}`}>• {item.course_id} ({item.term_label})</li>
+                                ))}
+                                {!scenarioDiff.addedInRight.length && <li>None</li>}
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="font-medium text-rose-700">Removed in right ({scenarioDiff.removedInRight.length})</p>
+                              <ul className="mt-1 max-h-40 space-y-1 overflow-auto text-xs text-stone-700">
+                                {scenarioDiff.removedInRight.map((item) => (
+                                  <li key={`removed-${item.course_id}`}>• {item.course_id} ({item.term_label})</li>
+                                ))}
+                                {!scenarioDiff.removedInRight.length && <li>None</li>}
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sky-700">Moved term ({scenarioDiff.movedInRight.length})</p>
+                              <ul className="mt-1 max-h-40 space-y-1 overflow-auto text-xs text-stone-700">
+                                {scenarioDiff.movedInRight.map((item) => (
+                                  <li key={`moved-${item.course_id}`}>• {item.course_id}: {item.from_term} → {item.to_term}</li>
+                                ))}
+                                {!scenarioDiff.movedInRight.length && <li>None</li>}
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <p className="font-medium text-rose-700">New blockers in right</p>
+                              <ul className="mt-1 space-y-1 text-xs text-stone-700">
+                                {scenarioDiff.blockersAddedInRight.map((item) => (
+                                  <li key={`new-blocker-${item}`}>• {item}</li>
+                                ))}
+                                {!scenarioDiff.blockersAddedInRight.length && <li>None</li>}
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="font-medium text-emerald-700">Blockers resolved in right</p>
+                              <ul className="mt-1 space-y-1 text-xs text-stone-700">
+                                {scenarioDiff.blockersRemovedInRight.map((item) => (
+                                  <li key={`resolved-blocker-${item}`}>• {item}</li>
+                                ))}
+                                {!scenarioDiff.blockersRemovedInRight.length && <li>None</li>}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                )}
+
+                {planWorkspaceTab === 'requirements' && (
+                <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
+                  <h3 className="font-semibold">Requirement Progress Map</h3>
+                  <p className="mt-1 text-xs text-stone-600">Grouped checklist with status chips for faster review.</p>
+                  <div className="mt-3 space-y-3">
+                    {requirementProgressGroups.map((group) => (
+                      <div key={group.title} className="rounded-lg border border-stone-200 p-3">
+                        <p className="text-sm font-medium">{group.title}</p>
+                        <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {group.items.map((item, index) => (
+                            <li key={`${group.title}-${item.label}-${index}`} className="rounded-lg bg-base p-2 text-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium">{item.label}</p>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs ${
+                                    item.status === 'done'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : item.status === 'planned'
+                                        ? 'bg-sky-100 text-sky-700'
+                                        : 'bg-rose-100 text-rose-700'
+                                  }`}
+                                >
+                                  {item.status}
+                                </span>
+                              </div>
+                              {item.detail && <p className="mt-1 text-xs text-stone-600">{item.detail}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                )}
+
+                {planWorkspaceTab === 'adjust' && (
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-xl border border-stone-200 bg-white p-4">
                     <h3 className="font-semibold">Plan Adjustments</h3>
@@ -1116,7 +1765,9 @@ function App() {
                     </ul>
                   </div>
                 </div>
+                )}
 
+                {planWorkspaceTab === 'overview' && (
                 <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
                   <h3 className="font-semibold">Admission-ready Checklist</h3>
                   <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -1132,53 +1783,12 @@ function App() {
                     {!plan.admission_checklist.missing_blockers.length && <li>No major blockers detected.</li>}
                   </ul>
                 </div>
+                )}
 
+                {planWorkspaceTab === 'evidence' && (
                 <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-                  <h3 className="font-semibold">Articulation Explainability</h3>
-                  <p className="mt-1 text-xs text-stone-600">Per course: why it satisfies a UC requirement, with citation source + policy year.</p>
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-stone-200 text-stone-600">
-                          <th className="px-2 py-2">Course</th>
-                          <th className="px-2 py-2">Requirement</th>
-                          <th className="px-2 py-2">Why</th>
-                          <th className="px-2 py-2">Source</th>
-                          <th className="px-2 py-2">Policy Year</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allPlannedCourses.map((course) => (
-                          <tr key={`why-${course.term_id}-${course.requirement_id}-${course.course_id}`} className="border-b border-stone-100">
-                            <td className="px-2 py-2 font-medium">{course.course_id}</td>
-                            <td className="px-2 py-2">
-                              <span className="font-medium">{formatRequirementLabel(course.course_name)}</span>
-                            </td>
-                            <td className="px-2 py-2">{course.justification}</td>
-                            <td className="px-2 py-2">
-                              {course.source_url ? (
-                                <a className="text-brand underline" href={course.source_url} target="_blank" rel="noreferrer">
-                                  {course.source_name ?? 'Source'}
-                                </a>
-                              ) : (
-                                (course.source_name ?? 'Not tagged')
-                              )}
-                            </td>
-                            <td className="px-2 py-2">{course.policy_year ?? 'N/A'}</td>
-                          </tr>
-                        ))}
-                        {!allPlannedCourses.length && (
-                          <tr>
-                            <td className="px-2 py-3 text-stone-500" colSpan={5}>No planned classes.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
-                  <h3 className="font-semibold">Full Course List ({allPlannedCourses.length} classes)</h3>
+                  <h3 className="font-semibold">Course Evidence ({allPlannedCourses.length} classes)</h3>
+                  <p className="mt-1 text-xs text-stone-600">Per course: schedule placement, rationale, and source citation.</p>
                   <div className="mt-3 overflow-x-auto">
                     <table className="min-w-full text-left text-sm">
                       <thead>
@@ -1186,6 +1796,7 @@ function App() {
                           <th className="px-2 py-2">Term</th>
                           <th className="px-2 py-2">Course ID</th>
                           <th className="px-2 py-2">Course Name</th>
+                          <th className="px-2 py-2">Why This Course</th>
                           <th className="px-2 py-2">Units</th>
                           <th className="px-2 py-2">Source</th>
                           <th className="px-2 py-2">Source Link</th>
@@ -1198,6 +1809,7 @@ function App() {
                             <td className="px-2 py-2">{course.term_label}</td>
                             <td className="px-2 py-2 font-medium">{course.course_id}</td>
                             <td className="px-2 py-2">{course.course_name}</td>
+                            <td className="px-2 py-2">{course.justification}</td>
                             <td className="px-2 py-2">{course.units}</td>
                             <td className="px-2 py-2">{course.source_name ?? 'Not tagged'}</td>
                             <td className="px-2 py-2">
@@ -1212,14 +1824,16 @@ function App() {
                         ))}
                         {!allPlannedCourses.length && (
                           <tr>
-                            <td className="px-2 py-3 text-stone-500" colSpan={7}>No scheduled classes.</td>
+                            <td className="px-2 py-3 text-stone-500" colSpan={8}>No scheduled classes.</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                 </div>
+                )}
 
+                {planWorkspaceTab === 'overview' && showTechnicalDetails && (
                 <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
                   <h3 className="font-semibold">Campus Course Inventory ({selectedSchool?.name ?? formState.schoolId})</h3>
                   <p className="mt-1 text-xs text-stone-500">
@@ -1253,7 +1867,9 @@ function App() {
                     </table>
                   </div>
                 </div>
+                )}
 
+                {planWorkspaceTab === 'overview' && showTechnicalDetails && (
                 <div className="mt-6 grid gap-4 lg:grid-cols-3">
                   <div className="rounded-xl border border-stone-200 bg-white p-4">
                     <h3 className="font-semibold">Milestones</h3>
@@ -1282,8 +1898,9 @@ function App() {
                     </ul>
                   </div>
                 </div>
+                )}
 
-                {formState.pathway === 'cc_transfer' && (
+                {planWorkspaceTab === 'overview' && formState.pathway === 'cc_transfer' && (
                   <div className="mt-6 rounded-xl border border-stone-200 bg-white p-4">
                     <h3 className="font-semibold">IGETC Tracker</h3>
                     <p className="mt-1 text-xs text-stone-500">
@@ -1310,9 +1927,64 @@ function App() {
                   </div>
                 )}
 
+                {planWorkspaceTab === 'overview' && (
                 <div className="mt-6 rounded-xl border border-brand/20 bg-brand/5 p-4 text-sm">
                   <h3 className="font-semibold">AI Explanation</h3>
                   <pre className="mt-2 whitespace-pre-wrap font-sans text-sm">{plan.explanation_markdown}</pre>
+                </div>
+                )}
+
+                <div className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-panel/95 p-3 shadow-soft backdrop-blur md:hidden">
+                  <div className="mx-auto max-w-7xl">
+                    <div className="grid grid-cols-5 gap-2">
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'overview' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        onClick={() => setPlanWorkspaceTab('overview')}
+                      >
+                        Overview
+                      </button>
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'scenarios' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        onClick={() => setPlanWorkspaceTab('scenarios')}
+                      >
+                        Scenarios
+                      </button>
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'requirements' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        onClick={() => setPlanWorkspaceTab('requirements')}
+                      >
+                        Reqs
+                      </button>
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'adjust' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        onClick={() => setPlanWorkspaceTab('adjust')}
+                      >
+                        Adjust
+                      </button>
+                      <button
+                        className={`rounded-lg px-3 py-2 text-xs ${planWorkspaceTab === 'evidence' ? 'bg-brand text-white' : 'bg-stone-200 text-stone-800'}`}
+                        onClick={() => setPlanWorkspaceTab('evidence')}
+                      >
+                        Evidence
+                      </button>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button
+                        className="rounded-lg bg-accent px-3 py-2 text-xs text-white disabled:opacity-50"
+                        disabled={!pendingScenarios.length || !plan}
+                        onClick={() => void runWithoutPendingCredit()}
+                      >
+                        Toggle Pending Credit
+                      </button>
+                      <button
+                        className="rounded-lg bg-stone-800 px-3 py-2 text-xs text-white disabled:opacity-50"
+                        disabled={!plan}
+                        onClick={() => void downloadPdf()}
+                      >
+                        Export PDF
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
